@@ -1,0 +1,16 @@
+backend/bin/
+backend/*.db
+backend/.env
+backend/go.sum
+
+# Node
+frontend/node_modules/
+frontend/build/
+frontend/.svelte-kit/
+
+# Docker
+data/
+
+# OS
+.DS_Store
+Thumbs.db
