@@ -42,7 +42,7 @@
     </a>
     <div style="display:flex;gap:8px;margin-left:auto">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
-      <a href="/login" class="btn btn-sm">Admin →</a>
+    
     </div>
   </div>
 </nav>
