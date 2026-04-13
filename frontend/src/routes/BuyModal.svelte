@@ -3,6 +3,7 @@
   import { IDR } from '$lib/utils.js';
 
   export let product;
+  // console.log('BuyModal product', product);
   const dispatch = createEventDispatcher();
 
   let name = '';
@@ -51,8 +52,8 @@
         <div class="qty-row">
           <button class="btn btn-sm" on:click={() => qty = Math.max(1, qty - 1)}>−</button>
           <span class="qty-val">{qty}</span>
-          <button class="btn btn-sm" on:click={() => qty = Math.min(product.stock, qty + 1)}>+</button>
-          <span style="font-size:12px;color:var(--text-muted)">Maks {product.stock}</span>
+          <button class="btn btn-sm" on:click={() => qty = Math.min(product.available_stock, qty + 1)}>+</button>
+          <span style="font-size:12px;color:var(--text-muted)">Maks {product.available_stock}</span>
         </div>
       </div>
 
