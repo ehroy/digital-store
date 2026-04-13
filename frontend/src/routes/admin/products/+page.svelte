@@ -24,6 +24,10 @@
   let bulkText = '';
   let editingItem = null;
   let stockError = '';
+  let stockPage = 1;
+  let stockTotalPages = 1;
+  let stockFilter = ''; // '' | 'available' | 'sold'
+  let stockSummary = { available: 0, sold: 0, total: 0 };
 
   const PROVIDERS = [
     { id:'email',   label:'Email',   icon:'✉️',  color:'#185FA5', bg:'#E6F1FB' },
@@ -167,13 +171,22 @@
   // ── Stock modal ──────────────────────────────────────────────────────────
   async function openStock(p) {
     stockModal = p; stockError = ''; bulkText = ''; editingItem = null;
-    await loadStock();
+    stockPage = 1; stockFilter = ''; stockTotalPages = 1;
+    await loadStock(1);
   }
-  async function loadStock() {
+  async function loadStock(page = stockPage) {
     stockLoading = true;
-    try { const r = await api.getStock(stockModal.id); stockItems = r.items || []; }
-    finally { stockLoading = false; }
+    try {
+      const r = await api.getStock(stockModal.id, page, stockFilter);
+      stockItems = r.items || [];
+      stockPage = r.page || 1;
+      stockTotalPages = r.total_pages || 1;
+      stockSummary = { available: r.available || 0, sold: r.sold || 0, total: r.total || 0 };
+    } finally { stockLoading = false; }
   }
+  async function setStockFilter(f) { stockFilter = f; stockPage = 1; await loadStock(1); }
+  async function stockPrev() { if (stockPage > 1) await loadStock(stockPage - 1); }
+  async function stockNext() { if (stockPage < stockTotalPages) await loadStock(stockPage + 1); }
   async function addBulk() {
     const lines = bulkText.split('\n').map(l=>l.trim()).filter(Boolean);
     if (!lines.length) { stockError = 'Tidak ada item.'; return; }
@@ -199,14 +212,14 @@
     try { await api.resetStockItem(item.id); await loadStock(); } catch(e) { stockError = e.message; }
   }
 
-  $: available = stockItems.filter(i=>!i.sold).length;
-  $: sold      = stockItems.filter(i=>i.sold).length;
+  $: available = stockSummary.available;
+  $: sold      = stockSummary.sold;
 
   // File input ref untuk trigger klik dari tombol
   let fileInputRef;
 </script>
 
-<svelte:head><title>Produk — Digitalku Murah Admin</title></svelte:head>
+<svelte:head><title>Produk — Digitalkuh Murah Admin</title></svelte:head>
 
 <div class="page-header">
   <h1 class="page-title">Manajemen Produk</h1>
@@ -494,18 +507,29 @@
 
       {#if stockError}<div class="alert-error" style="margin-bottom:10px">{stockError}</div>{/if}
 
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        {#each [['','Semua'],['available','Available'],['sold','Sold']] as [f,l]}
+          <button class="btn btn-sm {stockFilter===f?'btn-primary':''}" on:click={()=>setStockFilter(f)}>{l}</button>
+        {/each}
+        <span style="margin-left:auto;font-size:12px;color:var(--text-muted);align-self:center">
+          Hal {stockPage}/{stockTotalPages}
+        </span>
+      </div>
+
       {#if stockLoading}
         <div style="color:var(--text-muted);padding:1rem;text-align:center">Memuat…</div>
       {:else if stockItems.length===0}
-        <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:13px">Belum ada item stok.</div>
+        <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:13px">Tidak ada item.</div>
       {:else}
-        <div style="max-height:360px;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <div style="border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
           <table class="data-table">
-            <thead><tr><th style="width:32px">#</th><th>Data</th><th style="width:100px">Status</th><th style="width:110px"></th></tr></thead>
+            <thead><tr><th style="width:42px">No</th><th>Data</th><th style="width:100px">Status</th><th style="width:110px"></th></tr></thead>
             <tbody>
               {#each stockItems as item, i (item.id)}
+                {@const rowNo = (stockPage - 1) * 25 + i + 1}
                 <tr style="background:{item.sold?'#fff8f8':'#fff'}">
-                  <td style="color:var(--text-muted);font-size:12px">{i+1}</td>
+                  <td style="color:var(--text-muted);font-size:12px">{rowNo}</td>
                   <td>
                     {#if editingItem?.id===item.id}
                       <input class="input mono" style="font-size:12px;padding:5px 9px"
@@ -542,6 +566,17 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination controls -->
+        {#if stockTotalPages > 1}
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px">
+            <button class="btn btn-sm" on:click={stockPrev} disabled={stockPage<=1}>← Prev</button>
+            <span style="font-size:12.5px;color:var(--text-muted)">
+              Halaman {stockPage} dari {stockTotalPages}
+            </span>
+            <button class="btn btn-sm" on:click={stockNext} disabled={stockPage>=stockTotalPages}>Next →</button>
+          </div>
+        {/if}
       {/if}
     </div>
   </div>

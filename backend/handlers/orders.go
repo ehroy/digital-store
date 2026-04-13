@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,14 @@ func CreateOrder(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}); return
+	}
+
+	// ── Validasi metode pembayaran di backend ────────────────────────────────
+	var cfg models.PaymentConfig
+	database.DB.First(&cfg, 1)
+	if err := ValidatePayMethod(req.PayMethod, &cfg); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "metode pembayaran tidak valid: " + err.Error()})
+		return
 	}
 
 	var product models.Product
@@ -60,23 +69,25 @@ func CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal membuat order"}); return
 	}
 
-	// Coba buat charge di gateway yang aktif
 	gwResult := createGatewayCharge(&order, config.App.FrontendURL)
 	if gwResult.ChargeID != "" {
 		database.DB.Model(&order).Updates(map[string]interface{}{
-			"gateway_charge_id": gwResult.ChargeID,
-			"gateway_pay_url":   gwResult.PayURL,
-			"gateway_pay_code":  gwResult.PayCode,
-			"expired_at":        gwResult.ExpiredAt,
+			"gateway_charge_id":  gwResult.ChargeID,
+			"gateway_invoice_no": gwResult.GatewayInvNo,
+			"gateway_provider":   gwResult.Provider,
+			"gateway_pay_url":    gwResult.PayURL,
+			"gateway_pay_code":   gwResult.PayCode,
+			"expired_at":         gwResult.ExpiredAt,
 		})
-		order.GatewayChargeID = gwResult.ChargeID
-		order.GatewayPayURL = gwResult.PayURL
-		order.GatewayPayCode = gwResult.PayCode
-		order.ExpiredAt = gwResult.ExpiredAt
-		// Kirim email "menunggu pembayaran" dengan tombol bayar
+		order.GatewayChargeID  = gwResult.ChargeID
+		order.GatewayInvoiceNo = gwResult.GatewayInvNo
+		order.GatewayProvider  = gwResult.Provider
+		order.GatewayPayURL    = gwResult.PayURL
+		order.GatewayPayCode   = gwResult.PayCode
+		order.ExpiredAt        = gwResult.ExpiredAt
 		go email.SendPendingInvoice(&order, gwResult.PayURL, gwResult.PayCode)
 	} else {
-		// Tidak ada gateway aktif — mode manual
+		// Mode manual
 		if product.Type == "stock" {
 			claimed, err := ClaimStockItems(product.ID, req.Qty, order.InvoiceNo)
 			if err != nil {
@@ -110,34 +121,77 @@ func CreateOrder(c *gin.Context) {
 	})
 }
 
+// GET /api/invoice/:no — cek status invoice
+// Verifikasi: wajib salah satu dari:
+//   ?email=xxx  → verifikasi email langsung
+//   ?token=xxx  → token HMAC yang digenerate setelah checkout (tanpa email ulang)
 func GetInvoicePublic(c *gin.Context) {
-	var order models.Order
-	if err := database.DB.Where("invoice_no = ?", c.Param("no")).First(&order).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "invoice tidak ditemukan"}); return
+	no := c.Param("no")
+	emailParam := strings.TrimSpace(c.Query("email"))
+	tokenParam := strings.TrimSpace(c.Query("token"))
+
+	if emailParam == "" && tokenParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":         "verifikasi wajib: sertakan ?email=xxx atau ?token=xxx",
+			"require_email": true,
+		})
+		return
 	}
+
+	var order models.Order
+	if err := database.DB.Where("invoice_no = ?", no).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "invoice tidak ditemukan"})
+		return
+	}
+
+	// Verifikasi: token ATAU email
+	if tokenParam != "" {
+		if !verifyViewToken(no, order.BuyerEmail, tokenParam) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "token tidak valid"})
+			return
+		}
+	} else {
+		if !strings.EqualFold(order.BuyerEmail, emailParam) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "email tidak sesuai dengan data pesanan"})
+			return
+		}
+	}
+
+	// Sync status dari gateway jika masih pending
 	if order.Status == "pending" && order.GatewayChargeID != "" {
 		CheckAndSyncGatewayStatus(&order)
-		database.DB.Where("invoice_no = ?", c.Param("no")).First(&order)
+		database.DB.Where("invoice_no = ?", no).First(&order)
 	}
+
+	// Cek apakah sudah expired tapi belum di-cancel
+	if order.Status == "pending" && order.ExpiredAt != nil && order.ExpiredAt.Before(time.Now()) {
+		database.DB.Model(&order).Update("status", "expired")
+		restoreStock(&order)
+		order.Status = "expired"
+	}
+
 	var items []string
 	if order.Status == "paid" && order.DeliveredItems != "" {
 		json.Unmarshal([]byte(order.DeliveredItems), &items)
 	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"invoice_no":       order.InvoiceNo,
-		"product_name":     order.ProductName,
-		"product_type":     order.ProductType,
-		"buyer_name":       order.BuyerName,
-		"qty":              order.Qty,
-		"total":            order.Total,
-		"pay_method":       order.PayMethod,
-		"status":           order.Status,
-		"delivered_items":  items,
-		"gateway_pay_url":  order.GatewayPayURL,
-		"gateway_pay_code": order.GatewayPayCode,
-		"expired_at":       order.ExpiredAt,
-		"created_at":       order.CreatedAt,
-		"updated_at":       order.UpdatedAt,
+		"invoice_no":        order.InvoiceNo,
+		"gateway_invoice_no": order.GatewayInvoiceNo,
+		"gateway_provider":  order.GatewayProvider,
+		"product_name":      order.ProductName,
+		"product_type":      order.ProductType,
+		"buyer_name":        order.BuyerName,
+		"qty":               order.Qty,
+		"total":             order.Total,
+		"pay_method":        order.PayMethod,
+		"status":            order.Status,
+		"delivered_items":   items,
+		"gateway_pay_url":   order.GatewayPayURL,
+		"gateway_pay_code":  order.GatewayPayCode,
+		"expired_at":        order.ExpiredAt,
+		"created_at":        order.CreatedAt,
+		"updated_at":        order.UpdatedAt,
 	})
 }
 
@@ -178,54 +232,37 @@ func UpdateOrderStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, o)
 }
 
-func generateInvoice() string {
-	t := time.Now()
-	return fmt.Sprintf("INV-%d%02d%02d-%06d", t.Year(), t.Month(), t.Day(), t.UnixMilli()%1000000)
-}
-
-// POST /api/admin/orders/:id/deliver — admin kirim produk secara manual
-// Untuk produk stok: admin pilih item mana yang dikirim
-// Untuk produk script: admin bisa re-trigger script
 func ManualDeliver(c *gin.Context) {
 	var o models.Order
 	if err := database.DB.First(&o, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"})
-		return
+		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"}); return
 	}
-
 	var body struct {
-		// Untuk stok: admin bisa override item yang dikirim (opsional)
-		// Jika kosong, sistem klaim stok tersedia otomatis
-		Items []string `json:"items"`
-		// Untuk script: apakah re-run script?
-		RunScript bool `json:"run_script"`
-		// Catatan admin
-		Note string `json:"note"`
+		Items     []string `json:"items"`
+		RunScript bool     `json:"run_script"`
+		Note      string   `json:"note"`
 	}
 	c.ShouldBindJSON(&body)
 
-	if o.ProductType == "stock" {
-		if len(body.Items) > 0 {
-			// Admin override: kirim item yang dipilih manual
-			itemsJSON, _ := json.Marshal(body.Items)
-			database.DB.Model(&o).Updates(map[string]interface{}{
-				"delivered_items": string(itemsJSON),
-				"status":          "paid",
-				"notes":           "Manual delivery by admin: " + body.Note,
-			})
-			o.DeliveredItems = string(itemsJSON)
-			o.Status = "paid"
-			go email.SendInvoiceWithItems(&o, body.Items)
-			c.JSON(http.StatusOK, gin.H{"message": "item berhasil dikirim manual", "items": body.Items})
-		} else {
-			// Klaim stok otomatis lalu deliver
-			deliverOrder(&o)
-			database.DB.Where("id = ?", o.ID).First(&o)
-			c.JSON(http.StatusOK, gin.H{"message": "item dikirim otomatis dari stok", "status": o.Status})
-		}
+	if o.ProductType == "stock" && len(body.Items) > 0 {
+		itemsJSON, _ := json.Marshal(body.Items)
+		database.DB.Model(&o).Updates(map[string]interface{}{
+			"delivered_items": string(itemsJSON),
+			"status":          "paid",
+			"notes":           "Manual delivery by admin: " + body.Note,
+		})
+		o.DeliveredItems = string(itemsJSON)
+		o.Status = "paid"
+		go email.SendInvoiceWithItems(&o, body.Items)
+		c.JSON(http.StatusOK, gin.H{"message": "item berhasil dikirim manual", "status": "paid"})
 	} else {
-		// Script product: deliver (re-run script)
 		deliverOrder(&o)
-		c.JSON(http.StatusOK, gin.H{"message": "script dieksekusi"})
+		database.DB.Where("id = ?", o.ID).First(&o)
+		c.JSON(http.StatusOK, gin.H{"message": "berhasil", "status": o.Status})
 	}
+}
+
+func generateInvoice() string {
+	t := time.Now()
+	return fmt.Sprintf("INV-%d%02d%02d-%06d", t.Year(), t.Month(), t.Day(), t.UnixMilli()%1000000)
 }

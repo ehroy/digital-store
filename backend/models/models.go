@@ -47,9 +47,11 @@ type Order struct {
 	Notes          string     `json:"notes"`
 
 	// Payment Gateway fields
-	GatewayChargeID  string     `json:"gateway_charge_id"  gorm:"default:''"`
-	GatewayPayURL    string     `json:"gateway_pay_url"    gorm:"default:''"`
-	GatewayPayCode   string     `json:"gateway_pay_code"   gorm:"default:''"`
+	GatewayChargeID  string     `json:"gateway_charge_id"   gorm:"default:''"`  // ID charge/invoice di sisi gateway
+	GatewayInvoiceNo string     `json:"gateway_invoice_no"  gorm:"default:''"`  // Nomor invoice dari gateway (untuk sync)
+	GatewayProvider  string     `json:"gateway_provider"    gorm:"default:''"`  // "sayabayar" | "dompetx" | ""
+	GatewayPayURL    string     `json:"gateway_pay_url"     gorm:"default:''"`
+	GatewayPayCode   string     `json:"gateway_pay_code"    gorm:"default:''"`
 	ExpiredAt        *time.Time `json:"expired_at"`
 
 	CreatedAt time.Time `json:"created_at"`
@@ -105,4 +107,40 @@ type ProviderAction struct {
 	Headers    map[string]string `json:"headers,omitempty"`
 	WebhookURL string            `json:"webhook_url,omitempty"`
 	Message    string            `json:"message,omitempty"`
+}
+
+// ── StockProvider ─────────────────────────────────────────────────────────────
+// Provider eksternal yang menyuplai item stok via API.
+// Saat pull dilakukan, response di-parse dan item baru ditambahkan ke ProductStock.
+
+type StockProvider struct {
+	ID          uint      `json:"id"           gorm:"primaryKey;autoIncrement"`
+	Name        string    `json:"name"         gorm:"not null"`       // Nama provider
+	ProductID   uint      `json:"product_id"   gorm:"not null;index"` // Produk tujuan
+	Type        string    `json:"type"         gorm:"not null"`       // "http_api" | "csv_url"
+	// HTTP API config
+	APIURL      string    `json:"api_url"      gorm:"type:text"`      // URL endpoint provider
+	APIMethod   string    `json:"api_method"   gorm:"default:'GET'"` // GET | POST
+	APIHeaders  string    `json:"api_headers"  gorm:"type:text"`      // JSON: {"X-Key":"val"}
+	APIBody     string    `json:"api_body"     gorm:"type:text"`      // JSON body jika POST
+	// Response parsing
+	ItemsPath   string    `json:"items_path"`                         // JSONPath ke array, mis: "data.items"
+	ItemField   string    `json:"item_field"`                         // Field tiap item, mis: "key" atau "url"
+	// Status
+	Active      bool      `json:"active"       gorm:"default:true"`
+	LastPullAt  *time.Time `json:"last_pull_at"`
+	LastCount   int       `json:"last_count"`  // Jumlah item terakhir di-pull
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// PullLog — log setiap kali pull dilakukan
+type PullLog struct {
+	ID         uint      `json:"id"          gorm:"primaryKey;autoIncrement"`
+	ProviderID uint      `json:"provider_id" gorm:"index"`
+	ProductID  uint      `json:"product_id"`
+	Status     string    `json:"status"`     // success | failed | partial
+	Count      int       `json:"count"`      // item berhasil ditambahkan
+	Message    string    `json:"message"     gorm:"type:text"`
+	CreatedAt  time.Time `json:"created_at"`
 }

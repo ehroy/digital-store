@@ -6,6 +6,13 @@
 
   const invoiceNo = $page.params.invoice;
 
+  // Ambil credential (token atau email) dari sessionStorage
+  // Token di-generate saat checkout berhasil dan disimpan dengan key inv_token_{invoiceNo}
+  function getCred() {
+    if (typeof sessionStorage === 'undefined') return '';
+    return sessionStorage.getItem('inv_token_' + invoiceNo) || '';
+  }
+
   let data = null;
   let loading = true;
   let error = '';
@@ -14,6 +21,7 @@
   let countdownTimer = null;
   let pollCount = 0;
   let lastChecked = null;
+  let cred = '';
 
   $: isFinal = data && ['paid','cancelled','expired','failed'].includes(data.status);
   $: gatewayActive = data?.gateway_pay_url || data?.gateway_pay_code;
@@ -21,11 +29,18 @@
 
   async function fetchStatus() {
     try {
-      data = await api.getInvoice(invoiceNo);
+      data = await api.getInvoice(invoiceNo, cred);
       pollCount++; lastChecked = new Date(); error = '';
       if (isFinal) stopPolling();
-    } catch(e) { error = e.message; }
-    finally { loading = false; }
+    } catch(e) {
+      // Jika 400/403 berarti tidak ada cred — arahkan ke cek-invoice dengan form email
+      if (e.message.includes('verifikasi') || e.message.includes('email') || e.message.includes('token')) {
+        stopPolling();
+        error = 'sesi_habis';
+      } else {
+        error = e.message;
+      }
+    } finally { loading = false; }
   }
 
   function startPolling() {
@@ -41,7 +56,10 @@
   }
   function refresh() { countdown = 8; fetchStatus(); }
 
-  onMount(startPolling);
+  onMount(() => {
+    cred = getCred();
+    startPolling();
+  });
   onDestroy(stopPolling);
 
   const SC = {
@@ -53,7 +71,6 @@
     cancelled:       { icon:'✗',  color:'#8c2626', bg:'#FCEBEB', title:'Pesanan Dibatalkan',        desc:'Hubungi kami jika ada pertanyaan.' },
   };
 
-  // Hitung sisa waktu expired
   $: timeLeft = (() => {
     if (!data?.expired_at) return null;
     const diff = new Date(data.expired_at) - new Date();
@@ -65,29 +82,44 @@
   })();
 </script>
 
-<svelte:head><title>Pembayaran {invoiceNo} — Digitalku Murah</title></svelte:head>
+<svelte:head><title>Pembayaran {invoiceNo} — Digitalkuh Murah</title></svelte:head>
 
 <nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100">
   <div style="max-width:800px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
       <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
-      Digitalku Murah
+      Digitalkuh Murah
     </a>
     <span class="mono" style="margin-left:auto;font-size:12px;color:var(--text-muted)">{invoiceNo}</span>
   </div>
 </nav>
 
 <div style="max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem">
+
   {#if loading}
     <div style="text-align:center;padding:4rem;color:var(--text-muted)">
-      <div style="font-size:32px;margin-bottom:10px">🔄</div>Memuat…
+      <div style="font-size:28px;margin-bottom:10px">🔄</div>Memuat…
+    </div>
+
+  {:else if error === 'sesi_habis'}
+    <!-- Sesi habis / tidak ada token — arahkan ke cek invoice dengan email -->
+    <div class="card" style="text-align:center;padding:2.5rem;max-width:440px;margin:2rem auto">
+      <div style="font-size:36px;margin-bottom:14px">🔐</div>
+      <div style="font-weight:500;font-size:16px;margin-bottom:8px">Verifikasi Diperlukan</div>
+      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:20px">
+        Untuk melihat invoice ini, masukkan email yang digunakan saat pembelian.
+      </p>
+      <a href="/cek-invoice?no={invoiceNo}"
+        class="btn btn-primary" style="display:inline-block;padding:10px 24px;font-size:14px;text-decoration:none">
+        Cek dengan Email →
+      </a>
     </div>
 
   {:else if error}
     <div class="card" style="text-align:center;padding:2.5rem">
       <div style="font-size:32px;margin-bottom:10px">❌</div>
       <div style="font-weight:500;margin-bottom:16px">{error}</div>
-      <a href="/" class="btn btn-primary">Kembali ke Toko</a>
+      <a href="/cek-invoice?no={invoiceNo}" class="btn btn-primary">Cek Invoice →</a>
     </div>
 
   {:else if data}
@@ -102,7 +134,6 @@
           <div style="font-size:13px;color:{sc.color};opacity:0.8;margin-top:3px">{sc.desc}</div>
         </div>
       </div>
-
       {#if data.status === 'pending' && !isFinal}
         <div style="text-align:right;flex-shrink:0">
           {#if timeLeft}
@@ -117,10 +148,8 @@
     </div>
 
     <div class="pay-grid">
-      <!-- Kiri: detail + instruksi bayar -->
+      <!-- Kiri: detail + instruksi -->
       <div style="display:flex;flex-direction:column;gap:12px">
-
-        <!-- Detail order -->
         <div class="card" style="padding:0;overflow:hidden">
           <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">Detail Pesanan</div>
           <table style="width:100%;border-collapse:collapse">
@@ -130,69 +159,42 @@
               ['Jumlah', `${data.qty} pcs`],
               ['Metode', PAY_LABEL[data.pay_method] || data.pay_method],
             ] as [l,v], i}
-             <tbody>
-               <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
+              <tbody>
+                <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
                 <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:38%">{l}</td>
                 <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
               </tr>
-             </tbody>
+              </tbody>
             {/each}
-            <tbody>
-              <tr style="border-top:2px solid #0d5fa8">
-                <td style="padding:11px 16px;font-weight:600">Total</td>
-                <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:#0d5fa8">{IDR(data.total)}</td>
-              </tr>
-            </tbody>
+         <tbody>
+             <tr style="border-top:2px solid #0d5fa8">
+              <td style="padding:11px 16px;font-weight:600">Total</td>
+              <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:#0d5fa8">{IDR(data.total)}</td>
+            </tr>
+         </tbody>
           </table>
         </div>
 
-        <!-- Tombol bayar via DompetX -->
         {#if data.status === 'pending' && data.gateway_pay_url}
           <div class="card" style="text-align:center;padding:1.5rem">
             <div style="font-weight:500;font-size:14px;margin-bottom:8px">Selesaikan Pembayaran</div>
             <a href={data.gateway_pay_url} target="_blank" rel="noopener"
               style="display:inline-block;background:#0d5fa8;color:#fff;padding:13px 28px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none">
-              💳 Bayar via DompetX →
+              💳 Bayar via Gateway →
             </a>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
-              Halaman pembayaran akan terbuka di tab baru. Kembali ke halaman ini setelah selesai.
-            </div>
             {#if data.expired_at}
-              <div style="font-size:12px;color:#854F0B;margin-top:4px">
-                ⚠️ Berlaku sampai: {fmtDateTime(data.expired_at)}
-              </div>
+              <div style="font-size:12px;color:#854F0B;margin-top:8px">⚠️ Berlaku sampai: {fmtDateTime(data.expired_at)}</div>
             {/if}
           </div>
-
         {:else if data.status === 'pending' && data.gateway_pay_code}
-          <!-- Tampilkan nomor VA jika tidak ada payment_url tapi ada pay_code -->
           <div class="card">
-            <div style="font-weight:500;font-size:14px;margin-bottom:10px">Nomor Virtual Account / Kode Bayar</div>
+            <div style="font-weight:500;font-size:14px;margin-bottom:10px">Kode Pembayaran</div>
             <div style="background:#f0f4ff;border-radius:var(--radius);padding:14px;text-align:center">
-              <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">{PAY_LABEL[data.pay_method] || data.pay_method}</div>
               <div class="mono" style="font-size:24px;font-weight:700;letter-spacing:3px">{data.gateway_pay_code}</div>
-            </div>
-            {#if data.expired_at}
-              <div style="font-size:12px;color:#854F0B;margin-top:8px">
-                ⚠️ Berlaku sampai: {fmtDateTime(data.expired_at)}
-              </div>
-            {/if}
-          </div>
-
-        {:else if data.status === 'pending' && !gatewayActive}
-          <!-- Mode manual: tampilkan instruksi transfer -->
-          <div class="card">
-            <div style="font-weight:500;font-size:14px;margin-bottom:10px">📋 Instruksi Pembayaran Manual</div>
-            <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
-              Lakukan transfer dan konfirmasikan ke admin. Produk akan dikirim setelah pembayaran dikonfirmasi.
-            </div>
-            <div style="background:#f8f8f6;border-radius:var(--radius);padding:12px;font-size:13px">
-              Sertakan nomor invoice <strong class="mono">{invoiceNo}</strong> sebagai keterangan transfer.
             </div>
           </div>
         {/if}
 
-        <!-- Last checked -->
         {#if lastChecked && !isFinal}
           <div style="font-size:11.5px;color:var(--text-hint);text-align:center">
             Dicek {pollCount}× · terakhir {fmtDateTime(lastChecked.toISOString())}
@@ -200,7 +202,7 @@
         {/if}
       </div>
 
-      <!-- Kanan: produk / status proses -->
+      <!-- Kanan: produk yang diterima -->
       <div>
         {#if data.status === 'paid' && data.delivered_items?.length}
           <div class="card" style="padding:0;overflow:hidden">
@@ -237,14 +239,14 @@
           <div class="card" style="text-align:center;padding:2.5rem">
             <div class="pulse">⏳</div>
             <div style="font-weight:500;font-size:14px;margin:12px 0 6px">Menunggu Konfirmasi</div>
-            <div style="font-size:13px;color:var(--text-muted)">Produk akan muncul di sini otomatis setelah bayar.</div>
+            <div style="font-size:13px;color:var(--text-muted)">Produk muncul otomatis setelah bayar.</div>
           </div>
 
         {:else if data.status === 'script_executed'}
           <div class="card" style="text-align:center;padding:2.5rem">
             <div style="font-size:40px;margin-bottom:12px">👷</div>
             <div style="font-weight:500;font-size:14px;margin-bottom:6px">Sedang Diproses</div>
-            <div style="font-size:13px;color:var(--text-muted)">Tim kami akan menghubungi Anda dalam 1×24 jam.</div>
+            <div style="font-size:13px;color:var(--text-muted)">Tim kami menghubungi dalam 1×24 jam.</div>
           </div>
 
         {:else if ['expired','cancelled','failed'].includes(data.status)}
@@ -259,7 +261,7 @@
 
         <div style="margin-top:12px;text-align:center">
           <a href="/cek-invoice?no={invoiceNo}" style="font-size:12.5px;color:var(--text-muted)">
-            Buka halaman cek invoice →
+            Cek invoice dengan email →
           </a>
         </div>
       </div>

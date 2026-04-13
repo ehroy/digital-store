@@ -13,22 +13,59 @@ import (
 
 // GET /api/admin/products/:id/stock — semua item stok produk
 func GetProductStock(c *gin.Context) {
-	var items []models.ProductStock
-	database.DB.
-		Where("product_id = ?", c.Param("id")).
-		Order("sold asc, id asc").
-		Find(&items)
+	productID := c.Param("id")
 
-	var avail, sold int
-	for _, it := range items {
-		if it.Sold { sold++ } else { avail++ }
+	// Summary counts (selalu hitung semua)
+	var avail, sold int64
+	database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", productID, false).Count(&avail)
+	database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", productID, true).Count(&sold)
+	total := avail + sold
+
+	// Pagination
+	page := 1
+	pageSize := 25
+	filterStatus := c.Query("status") // "available" | "sold" | "" (semua)
+
+	if p := c.Query("page"); p != "" {
+		fmt.Sscanf(p, "%d", &page)
+		if page < 1 { page = 1 }
+	}
+	if ps := c.Query("page_size"); ps != "" {
+		fmt.Sscanf(ps, "%d", &pageSize)
+		if pageSize < 1 { pageSize = 10 }
+		if pageSize > 100 { pageSize = 100 }
 	}
 
+	query := database.DB.Where("product_id = ?", productID).Order("sold asc, id asc")
+	switch filterStatus {
+	case "available":
+		query = query.Where("sold = ?", false)
+	case "sold":
+		query = query.Where("sold = ?", true)
+	}
+
+	var items []models.ProductStock
+	query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&items)
+
+	// Total sesuai filter untuk pagination
+	var filteredTotal int64
+	switch filterStatus {
+	case "available": filteredTotal = avail
+	case "sold":      filteredTotal = sold
+	default:          filteredTotal = total
+	}
+
+	totalPages := int((filteredTotal + int64(pageSize) - 1) / int64(pageSize))
+
 	c.JSON(http.StatusOK, gin.H{
-		"items":     items,
-		"available": avail,
-		"sold":      sold,
-		"total":     len(items),
+		"items":       items,
+		"available":   avail,
+		"sold":        sold,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
+		"filter":      filterStatus,
 	})
 }
 

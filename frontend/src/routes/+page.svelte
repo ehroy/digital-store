@@ -32,27 +32,24 @@
   });
 </script>
 
-<svelte:head><title>Digitalku Murah — Produk Digital</title></svelte:head>
+<svelte:head><title>Digitalkuh Murah — Produk Digital</title></svelte:head>
 
 <nav class="store-nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
       <span class="nav-logo">🛍</span>
-      <span>Digitalku Murah</span>
+      <span>Digitalkuh Murah</span>
     </a>
     <div style="display:flex;gap:8px;margin-left:auto">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
-   
+
     </div>
   </div>
 </nav>
-<div class="hero hero-bg-gradient">
 
-  <div class="hero">
-    <h1>Produk Digital Terbaik</h1>
-    <p>Streaming, voucher B1G1, diskon 50%, dan berbagai layanan digital lainnya—solusi lengkap untuk kebutuhan premium kamu tanpa ribet.</p>
-    
-  </div>
+<div class="hero">
+  <h1>Produk Digital Terbaik</h1>
+  <p>Template, ebook, plugin, dan source code berkualitas untuk mempercepat bisnis digital kamu.</p>
 </div>
 
 <div class="store-container">
@@ -167,24 +164,4 @@
 .product-stock { font-size:11.5px;color:var(--text-muted); }
 .empty-state { text-align:center;padding:3rem;color:var(--text-muted); }
 .store-footer { text-align:center;padding:2rem 0 0;font-size:13px;color:var(--text-muted); }
-.hero-bg-glow {
-  background: radial-gradient(circle at 20% 30%, #1e90ff, #0d5fa8 60%, #071c33);
-  color: white;
-  padding: 90px 20px;
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-bg-glow::before {
-  content: '';
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: #3bb2ff;
-  opacity: 0.2;
-  filter: blur(120px);
-  top: -150px;
-  left: -150px;
-}
 </style>

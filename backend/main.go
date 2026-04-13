@@ -36,6 +36,7 @@ func main() {
 		api.POST("/orders", handlers.CreateOrder)
 		api.GET("/payment/config", handlers.GetPaymentConfig)
 		api.GET("/invoice/:no", handlers.GetInvoicePublic)
+		api.POST("/invoice/:no/token", handlers.GenerateViewToken)
 		api.GET("/payment/methods", handlers.GetPaymentMethods)
 
 		// Webhook dari masing-masing gateway (public, no JWT)
@@ -69,6 +70,15 @@ func main() {
 			adm.PUT("/payment/config",  handlers.UpdatePaymentConfig)
 
 			adm.GET("/scripts/logs", handlers.GetScriptLogs)
+
+			// Stock providers
+			adm.GET("/providers",            handlers.GetProviders)
+			adm.POST("/providers",           handlers.CreateProvider)
+			adm.PUT("/providers/:id",        handlers.UpdateProvider)
+			adm.DELETE("/providers/:id",     handlers.DeleteProvider)
+			adm.POST("/providers/:id/pull",  handlers.PullFromProvider)
+			adm.GET("/providers/:id/logs",   handlers.GetProviderLogs)
+			adm.GET("/pull-logs",            handlers.GetAllPullLogs)
 		}
 	}
 

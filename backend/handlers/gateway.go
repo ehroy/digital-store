@@ -1,5 +1,3 @@
-// gateway.go — Multi-gateway handler: DompetX & SayaBayar
-// Tambah gateway baru: implementasi interface GatewayResult, daftarkan di resolveGateway()
 package handlers
 
 import (
@@ -19,19 +17,69 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ── GatewayResult — hasil membuat charge/invoice di gateway ──────────────────
+// ── GatewayResult ─────────────────────────────────────────────────────────────
 
 type GatewayResult struct {
-	ChargeID  string     // ID di sisi gateway (untuk cek status)
-	PayURL    string     // URL halaman bayar untuk pembeli
-	PayCode   string     // Nomor VA / kode bayar (opsional)
-	ExpiredAt *time.Time // Waktu kadaluarsa
-	Provider  string     // "dompetx" | "sayabayar"
+	ChargeID      string     // ID invoice/charge di gateway (untuk GetStatus)
+	GatewayInvNo  string     // Nomor invoice dari gateway (mis: INV-20240327-0042 dari SayaBayar)
+	PayURL        string
+	PayCode       string
+	ExpiredAt     *time.Time
+	Provider      string     // "sayabayar" | "dompetx"
 }
 
-// ── resolveGateway — pilih gateway yang aktif ─────────────────────────────────
-// Prioritas: SayaBayar → DompetX → nil (manual).
-// Ubah urutan di sini untuk mengubah prioritas default.
+// ── ValidatePayMethod — cek apakah method boleh dipakai ───────────────────────
+
+// ValidatePayMethod memastikan pay_method yang dikirim user sesuai dengan yang aktif di config.
+// Mencegah user bypass frontend dan kirim metode yang tidak tersedia.
+func ValidatePayMethod(method string, cfg *models.PaymentConfig) error {
+	// Jika gateway aktif, satu-satunya method yang valid adalah "gateway"
+	if cfg.SayaBayarEnabled && cfg.SayaBayarAPIKey != "" {
+		if method != "gateway" {
+			return fmt.Errorf("gateway SayaBayar aktif — gunakan metode 'gateway'")
+		}
+		return nil
+	}
+	if cfg.DompetXEnabled && cfg.DompetXAPIKey != "" {
+		if method != "gateway" {
+			return fmt.Errorf("gateway DompetX aktif — gunakan metode 'gateway'")
+		}
+		return nil
+	}
+
+	// Mode manual: validasi setiap metode yang dikonfigurasi
+	switch method {
+	case "bank":
+		if cfg.BankNo == "" {
+			return fmt.Errorf("transfer bank tidak dikonfigurasi")
+		}
+	case "dana":
+		if cfg.Dana == "" {
+			return fmt.Errorf("DANA tidak dikonfigurasi")
+		}
+	case "gopay":
+		if cfg.Gopay == "" {
+			return fmt.Errorf("GoPay tidak dikonfigurasi")
+		}
+	case "ovo":
+		if cfg.Ovo == "" {
+			return fmt.Errorf("OVO tidak dikonfigurasi")
+		}
+	case "qris":
+		if !cfg.QRIS {
+			return fmt.Errorf("QRIS tidak diaktifkan")
+		}
+	case "crypto":
+		if !cfg.Crypto || cfg.CryptoAddr == "" {
+			return fmt.Errorf("cryptocurrency tidak diaktifkan")
+		}
+	default:
+		return fmt.Errorf("metode pembayaran '%s' tidak dikenal", method)
+	}
+	return nil
+}
+
+// ── resolveGateway ────────────────────────────────────────────────────────────
 
 func resolveGateway(cfg *models.PaymentConfig) string {
 	if cfg.SayaBayarEnabled && cfg.SayaBayarAPIKey != "" {
@@ -40,65 +88,63 @@ func resolveGateway(cfg *models.PaymentConfig) string {
 	if cfg.DompetXEnabled && cfg.DompetXAPIKey != "" {
 		return "dompetx"
 	}
-	return "" // tidak ada gateway aktif — mode manual
+	return ""
 }
 
-// ── createGatewayCharge — buat charge di gateway yang aktif ──────────────────
+// ── createGatewayCharge ───────────────────────────────────────────────────────
 
 func createGatewayCharge(order *models.Order, appBaseURL string) GatewayResult {
 	var cfg models.PaymentConfig
 	database.DB.First(&cfg, 1)
 
-	provider := resolveGateway(&cfg)
-	log.Printf("[GATEWAY] Provider: %q untuk order %s", provider, order.InvoiceNo)
-
-	switch provider {
+	switch resolveGateway(&cfg) {
 	case "sayabayar":
-		return createSayaBayarCharge(order, &cfg, appBaseURL)
+		return createSayaBayarCharge(order, &cfg)
 	case "dompetx":
 		return createDompetXCharge(order, &cfg, appBaseURL)
 	}
-	return GatewayResult{} // manual
+	return GatewayResult{}
 }
 
-// ── SayaBayar ─────────────────────────────────────────────────────────────────
+// ── SayaBayar charge ──────────────────────────────────────────────────────────
 
-func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig, appBaseURL string) GatewayResult {
+func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig) GatewayResult {
 	sb := gateway.NewSayaBayar(cfg.SayaBayarAPIKey)
 
 	expHours := cfg.PaymentExpireHours
 	if expHours <= 0 { expHours = 24 }
-	expMinutes := expHours * 60
 
 	channel := cfg.SayaBayarChannel
 	if channel == "" { channel = "platform" }
 
-	req := gateway.SBCreateRequest{
+	// Sertakan invoice_no internal di description agar bisa dilacak
+	resp, err := sb.CreateInvoice(gateway.SBCreateRequest{
 		CustomerName:      order.BuyerName,
 		CustomerEmail:     order.BuyerEmail,
 		Amount:            order.Total,
-		Description:       "Pembayaran " + order.ProductName + " — " + order.InvoiceNo,
+		Description:       fmt.Sprintf("[%s] %s", order.InvoiceNo, order.ProductName),
 		ChannelPreference: channel,
-		ExpiredMinutes:    expMinutes,
-	}
-
-	resp, err := sb.CreateInvoice(req)
+		ExpiredMinutes:    expHours * 60,
+	})
 	if err != nil {
 		log.Printf("[SAYABAYAR] Gagal buat invoice %s: %v", order.InvoiceNo, err)
 		return GatewayResult{}
 	}
 
 	exp := time.Now().Add(time.Duration(expHours) * time.Hour)
-	log.Printf("[SAYABAYAR] Invoice dibuat: %s → %s", order.InvoiceNo, resp.Data.ID)
+	log.Printf("[SAYABAYAR] Invoice dibuat: internal=%s gateway_id=%s gateway_inv=%s",
+		order.InvoiceNo, resp.Data.ID, resp.Data.InvoiceNumber)
+
 	return GatewayResult{
-		ChargeID:  resp.Data.ID,
-		PayURL:    resp.Data.PaymentURL,
-		ExpiredAt: &exp,
-		Provider:  "sayabayar",
+		ChargeID:     resp.Data.ID,            // clx9abc123
+		GatewayInvNo: resp.Data.InvoiceNumber, // INV-20240327-0042 dari SayaBayar
+		PayURL:       resp.Data.PaymentURL,
+		ExpiredAt:    &exp,
+		Provider:     "sayabayar",
 	}
 }
 
-// ── DompetX ───────────────────────────────────────────────────────────────────
+// ── DompetX charge ────────────────────────────────────────────────────────────
 
 func createDompetXCharge(order *models.Order, cfg *models.PaymentConfig, appBaseURL string) GatewayResult {
 	gw := gateway.NewDompetX(cfg.DompetXAPIKey, cfg.DompetXSecretKey, cfg.DompetXSandbox)
@@ -107,33 +153,32 @@ func createDompetXCharge(order *models.Order, cfg *models.PaymentConfig, appBase
 	if expHours <= 0 { expHours = 24 }
 	exp := time.Now().Add(time.Duration(expHours) * time.Hour)
 
-	req := gateway.ChargeRequest{
-		OrderID:       order.InvoiceNo,
+	resp, err := gw.CreateCharge(gateway.ChargeRequest{
+		OrderID:       order.InvoiceNo, // pakai invoice kita sebagai order_id
 		Amount:        order.Total,
 		Currency:      "IDR",
 		PaymentMethod: gateway.MapPayMethod(order.PayMethod),
 		CustomerName:  order.BuyerName,
 		CustomerEmail: order.BuyerEmail,
-		Description:   "Pembayaran " + order.ProductName,
+		Description:   fmt.Sprintf("[%s] %s", order.InvoiceNo, order.ProductName),
 		ExpiredAt:     exp.UTC().Format(time.RFC3339),
 		CallbackURL:   appBaseURL + "/api/webhook/dompetx",
 		ReturnURL:     appBaseURL + "/payment/" + order.InvoiceNo,
 		Metadata:      gateway.Metadata{InvoiceNo: order.InvoiceNo, Source: "digistore"},
-	}
-
-	resp, err := gw.CreateCharge(req)
+	})
 	if err != nil {
 		log.Printf("[DOMPETX] Gagal buat charge %s: %v", order.InvoiceNo, err)
 		return GatewayResult{}
 	}
 
-	log.Printf("[DOMPETX] Charge dibuat: %s → %s", order.InvoiceNo, resp.Data.ChargeID)
+	log.Printf("[DOMPETX] Charge dibuat: internal=%s gateway_id=%s", order.InvoiceNo, resp.Data.ChargeID)
 	return GatewayResult{
-		ChargeID:  resp.Data.ChargeID,
-		PayURL:    resp.Data.PaymentURL,
-		PayCode:   resp.Data.PaymentCode,
-		ExpiredAt: &exp,
-		Provider:  "dompetx",
+		ChargeID:     resp.Data.ChargeID,
+		GatewayInvNo: resp.Data.ChargeID, // DompetX tidak punya invoice_number terpisah
+		PayURL:       resp.Data.PaymentURL,
+		PayCode:      resp.Data.PaymentCode,
+		ExpiredAt:    &exp,
+		Provider:     "dompetx",
 	}
 }
 
@@ -150,7 +195,7 @@ func WebhookDompetX(c *gin.Context) {
 		if sig == "" { sig = c.GetHeader("X-DompetX-Signature") }
 		gw := gateway.NewDompetX(cfg.DompetXAPIKey, cfg.DompetXSecretKey, cfg.DompetXSandbox)
 		if !gw.VerifySignature(rawBody, sig) {
-			log.Printf("[DOMPETX WEBHOOK] Signature tidak valid dari %s", c.ClientIP())
+			log.Printf("[DOMPETX WEBHOOK] Invalid signature dari %s", c.ClientIP())
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "signature tidak valid"})
 			return
 		}
@@ -161,10 +206,11 @@ func WebhookDompetX(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payload tidak valid"})
 		return
 	}
-	log.Printf("[DOMPETX WEBHOOK] Event: %s | Order: %s | Status: %s", payload.Event, payload.OrderID, payload.Status)
 
+	// DompetX mengirim order_id = invoice_no kita
 	invoiceNo := payload.OrderID
 	if payload.Metadata.InvoiceNo != "" { invoiceNo = payload.Metadata.InvoiceNo }
+	log.Printf("[DOMPETX WEBHOOK] event=%s order=%s status=%s", payload.Event, invoiceNo, payload.Status)
 	handleWebhookEvent(invoiceNo, payload.Event, payload.Status, c)
 }
 
@@ -179,14 +225,19 @@ func WebhookSayaBayar(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payload tidak valid"})
 		return
 	}
-	log.Printf("[SAYABAYAR WEBHOOK] Event: %s | Invoice: %s | Status: %s",
-		payload.Event, payload.Invoice.ID, payload.Invoice.Status)
+	log.Printf("[SAYABAYAR WEBHOOK] event=%s id=%s inv=%s status=%s",
+		payload.Event, payload.Invoice.ID, payload.Invoice.InvoiceNumber, payload.Invoice.Status)
 
-	// Cari order via gateway_charge_id (= ID invoice SayaBayar)
+	// Cari order via gateway_charge_id (= ID dari SayaBayar)
 	var order models.Order
 	if err := database.DB.Where("gateway_charge_id = ?", payload.Invoice.ID).First(&order).Error; err != nil {
-		// Fallback: cari lewat deskripsi (invoice_number bisa jadi diisi invoice_no kita)
-		log.Printf("[SAYABAYAR WEBHOOK] Charge ID %s tidak ditemukan, coba InvoiceNumber", payload.Invoice.ID)
+		// Fallback: cari via gateway_invoice_no
+		if payload.Invoice.InvoiceNumber != "" {
+			database.DB.Where("gateway_invoice_no = ?", payload.Invoice.InvoiceNumber).First(&order)
+		}
+	}
+	if order.ID == 0 {
+		log.Printf("[SAYABAYAR WEBHOOK] Order tidak ditemukan untuk charge_id=%s", payload.Invoice.ID)
 		c.JSON(http.StatusOK, gin.H{"message": "diabaikan"})
 		return
 	}
@@ -194,12 +245,13 @@ func WebhookSayaBayar(c *gin.Context) {
 	handleWebhookEvent(order.InvoiceNo, payload.Event, payload.Invoice.Status, c)
 }
 
-// handleWebhookEvent — logik bersama setelah webhook diterima dari gateway manapun
+// ── handleWebhookEvent — logik bersama ───────────────────────────────────────
+
 func handleWebhookEvent(invoiceNo, event, status string, c *gin.Context) {
 	var order models.Order
 	if err := database.DB.Where("invoice_no = ?", invoiceNo).First(&order).Error; err != nil {
 		log.Printf("[WEBHOOK] Order %s tidak ditemukan", invoiceNo)
-		c.JSON(http.StatusOK, gin.H{"message": "order tidak ditemukan, diabaikan"})
+		c.JSON(http.StatusOK, gin.H{"message": "diabaikan"})
 		return
 	}
 	if order.Status == "paid" || order.Status == "cancelled" {
@@ -207,10 +259,9 @@ func handleWebhookEvent(invoiceNo, event, status string, c *gin.Context) {
 		return
 	}
 
-	isPaid := event == "charge.paid" || event == "charge.success" ||
-		event == "invoice.paid" || status == "paid"
+	isPaid    := event == "charge.paid" || event == "charge.success" || event == "invoice.paid" || status == "paid"
 	isExpired := event == "charge.expired" || event == "invoice.expired" || status == "expired"
-	isFailed := event == "charge.failed" || status == "failed"
+	isFailed  := event == "charge.failed" || status == "failed"
 
 	switch {
 	case isPaid:
@@ -218,13 +269,10 @@ func handleWebhookEvent(invoiceNo, event, status string, c *gin.Context) {
 	case isExpired:
 		database.DB.Model(&order).Update("status", "expired")
 		restoreStock(&order)
-		log.Printf("[WEBHOOK] Order %s expired", order.InvoiceNo)
+		log.Printf("[WEBHOOK] Order %s expired, stok dikembalikan", order.InvoiceNo)
 	case isFailed:
 		database.DB.Model(&order).Update("status", "failed")
 		restoreStock(&order)
-		log.Printf("[WEBHOOK] Order %s failed", order.InvoiceNo)
-	default:
-		log.Printf("[WEBHOOK] Event tidak dikenali: %s", event)
 	}
 	c.JSON(http.StatusOK, gin.H{"received": true})
 }
@@ -232,8 +280,6 @@ func handleWebhookEvent(invoiceNo, event, status string, c *gin.Context) {
 // ── deliverOrder ──────────────────────────────────────────────────────────────
 
 func deliverOrder(order *models.Order) {
-	log.Printf("[DELIVER] Order %s tipe %s", order.InvoiceNo, order.ProductType)
-
 	if order.ProductType == "stock" {
 		if order.DeliveredItems != "" {
 			database.DB.Model(order).Update("status", "paid")
@@ -249,32 +295,25 @@ func deliverOrder(order *models.Order) {
 		for i, it := range claimed { itemData[i] = it.Data }
 		deliveredJSON, _ := json.Marshal(itemData)
 		database.DB.Model(order).Updates(map[string]interface{}{
-			"delivered_items": string(deliveredJSON),
-			"status":          "paid",
+			"delivered_items": string(deliveredJSON), "status": "paid",
 		})
 		order.DeliveredItems = string(deliveredJSON)
 		order.Status = "paid"
 		go email.SendInvoiceWithItems(order, itemData)
-		log.Printf("[DELIVER] %d item terkirim ke order %s", len(itemData), order.InvoiceNo)
-
 	} else {
 		var product models.Product
 		database.DB.First(&product, order.ProductID)
 		if product.Script != "" {
 			go func() {
 				result := scripts.Execute(product.Script, order, email.Send)
-				actionsJSON, _ := json.Marshal(result.Actions)
+				actJSON, _ := json.Marshal(result.Actions)
 				database.DB.Create(&models.ScriptLog{
-					OrderID:   order.ID,
-					InvoiceNo: order.InvoiceNo,
-					Product:   order.ProductName,
-					Script:    product.Script,
-					Status:    result.Status,
-					Output:    string(actionsJSON),
+					OrderID: order.ID, InvoiceNo: order.InvoiceNo, Product: order.ProductName,
+					Script: product.Script, Status: result.Status, Output: string(actJSON),
 				})
-				newStatus := "script_executed"
-				if result.Status == "failed" { newStatus = "failed" }
-				database.DB.Model(order).Update("status", newStatus)
+				status := "script_executed"
+				if result.Status == "failed" { status = "failed" }
+				database.DB.Model(order).Update("status", status)
 			}()
 		} else {
 			database.DB.Model(order).Update("status", "paid")
@@ -283,7 +322,7 @@ func deliverOrder(order *models.Order) {
 	}
 }
 
-// ── CheckAndSyncGatewayStatus — polling manual saat pembeli buka halaman payment
+// ── CheckAndSyncGatewayStatus — polling manual saat pembeli buka halaman ──────
 
 func CheckAndSyncGatewayStatus(order *models.Order) {
 	if order.GatewayChargeID == "" { return }
@@ -291,15 +330,12 @@ func CheckAndSyncGatewayStatus(order *models.Order) {
 	database.DB.First(&cfg, 1)
 
 	var status string
-	provider := resolveGateway(&cfg)
-
-	switch provider {
+	switch resolveGateway(&cfg) {
 	case "sayabayar":
 		sb := gateway.NewSayaBayar(cfg.SayaBayarAPIKey)
 		resp, err := sb.GetInvoice(order.GatewayChargeID)
 		if err != nil || !resp.Success { return }
 		status = resp.Data.Status
-
 	case "dompetx":
 		gw := gateway.NewDompetX(cfg.DompetXAPIKey, cfg.DompetXSecretKey, cfg.DompetXSandbox)
 		resp, err := gw.GetChargeStatus(order.GatewayChargeID)
@@ -309,19 +345,15 @@ func CheckAndSyncGatewayStatus(order *models.Order) {
 		return
 	}
 
+	if order.Status != "pending" { return }
 	switch status {
-	case "paid", "success":
-		if order.Status == "pending" { deliverOrder(order) }
+	case "paid", "success": deliverOrder(order)
 	case "expired":
-		if order.Status == "pending" {
-			database.DB.Model(order).Update("status", "expired")
-			restoreStock(order)
-		}
+		database.DB.Model(order).Update("status", "expired")
+		restoreStock(order)
 	case "failed":
-		if order.Status == "pending" {
-			database.DB.Model(order).Update("status", "failed")
-			restoreStock(order)
-		}
+		database.DB.Model(order).Update("status", "failed")
+		restoreStock(order)
 	}
 }
 
@@ -331,7 +363,7 @@ func StartExpiryJob() {
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
-		log.Println("⏰ Expiry job dimulai")
+		log.Println("⏰ Expiry job dimulai — cek setiap 5 menit")
 		for range ticker.C { cancelExpiredOrders() }
 	}()
 }
@@ -340,7 +372,7 @@ func cancelExpiredOrders() {
 	var expired []models.Order
 	database.DB.Where("status = ? AND expired_at IS NOT NULL AND expired_at < ?", "pending", time.Now()).Find(&expired)
 	for _, o := range expired {
-		log.Printf("[EXPIRY] Cancel order %s", o.InvoiceNo)
+		log.Printf("[EXPIRY] Cancel order %s (expired: %v)", o.InvoiceNo, o.ExpiredAt)
 		database.DB.Model(&o).Update("status", "cancelled")
 		restoreStock(&o)
 	}
@@ -354,8 +386,6 @@ func restoreStock(order *models.Order) {
 			Updates(map[string]interface{}{"sold": false, "invoice_no": "", "sold_at": nil})
 	}
 }
-
-// ── Utility ───────────────────────────────────────────────────────────────────
 
 func FormatIDR(n int64) string {
 	s := fmt.Sprintf("%d", n)

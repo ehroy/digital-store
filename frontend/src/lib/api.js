@@ -42,7 +42,14 @@ export const api = {
   getProduct: (id) => req('GET', `/products/${id}`),
   placeOrder: (body) => req('POST', '/orders', body),
   getPaymentConfig: () => req('GET', '/payment/config'),
-  getInvoice: (no) => req('GET', `/invoice/${no}`),
+  getInvoice: (no, credential = '') => {
+    // credential bisa berupa email atau token (deteksi otomatis: token = 32 char hex)
+    if (!credential) return req('GET', `/invoice/${no}`);
+    const isToken = /^[0-9a-f]{32}$/.test(credential);
+    const param = isToken ? `token=${credential}` : `email=${encodeURIComponent(credential)}`;
+    return req('GET', `/invoice/${no}?${param}`);
+  },
+  generateInvoiceToken: (no, email) => req('POST', `/invoice/${no}/token`, { email }),
   getPaymentMethods: () => req('GET', '/payment/methods'),
 
   // Admin - dashboard
@@ -56,7 +63,7 @@ export const api = {
   toggleProduct: (id) => req('PATCH', `/products/${id}/toggle`, null, true),
 
   // Admin - stock items
-  getStock: (productId) => req('GET', `/products/${productId}/stock`, null, true),
+  getStock: (productId, page = 1, status = '') => req('GET', `/products/${productId}/stock?page=${page}&status=${status}`, null, true),
   addStock: (productId, items) => req('POST', `/products/${productId}/stock`, { items }, true),
   updateStockItem: (stockId, data) => req('PUT', `/stock/${stockId}`, { data }, true),
   deleteStockItem: (stockId) => req('DELETE', `/stock/${stockId}`, null, true),
@@ -74,6 +81,15 @@ export const api = {
 
   // Admin - scripts
   scriptLogs: () => req('GET', '/scripts/logs', null, true),
+
+  // Admin - stock providers
+  getProviders: (productId = '') => req('GET', `/providers${productId ? '?product_id=' + productId : ''}`, null, true),
+  createProvider: (body) => req('POST', '/providers', body, true),
+  updateProvider: (id, body) => req('PUT', `/providers/${id}`, body, true),
+  deleteProvider: (id) => req('DELETE', `/providers/${id}`, null, true),
+  pullFromProvider: (id) => req('POST', `/providers/${id}/pull`, null, true),
+  getProviderLogs: (id) => req('GET', `/providers/${id}/logs`, null, true),
+  getAllPullLogs: () => req('GET', '/pull-logs', null, true),
 
   // Admin - product image (multipart — tidak pakai req() biasa)
   uploadProductImage: async (productId, file) => {

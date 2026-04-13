@@ -20,6 +20,7 @@
     { href: '/admin/orders', label: 'Pesanan', icon: '🧾' },
     { href: '/admin/payment', label: 'Pembayaran', icon: '💳' },
     { href: '/admin/scripts', label: 'Script Logs', icon: '⚙️' },
+    { href: '/admin/providers', label: 'Provider Stok', icon: '🔌' },
   ];
 
   $: current = $page.url.pathname;
@@ -30,7 +31,7 @@
   <header class="admin-header">
     <a href="/" class="brand">
       <span class="brand-logo">🛍</span>
-      <span>DigiStore</span>
+      <span>Digitalkuh Murah</span>
     </a>
     <span style="font-size:12px;color:var(--text-muted)">Admin Panel</span>
     <div style="display:flex;gap:8px;margin-left:auto">

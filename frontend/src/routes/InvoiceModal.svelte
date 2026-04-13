@@ -26,7 +26,7 @@
     <div class="invoice-box">
       <div class="inv-head">
         <div>
-          <div style="font-weight:500;font-size:15px">Digitalku Murah</div>
+          <div style="font-weight:500;font-size:15px">Digitalkuh Murah</div>
           <div style="font-size:12px;color:var(--text-muted)">Produk Digital Indonesia</div>
         </div>
         <div style="text-align:right">

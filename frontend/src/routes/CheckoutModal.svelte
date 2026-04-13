@@ -39,9 +39,21 @@
         pay_method: selectedMethod,
       });
 
+      // Generate view token → simpan di sessionStorage (akses invoice tanpa email)
+      let viewToken = '';
+      try {
+        const tk = await api.generateInvoiceToken(res.invoice_no, data.email);
+        viewToken = tk.token || '';
+      } catch {}
+
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('inv_token_' + res.invoice_no, viewToken || data.email);
+      }
+
       // Jika gateway aktif dan ada payment URL → redirect ke portal pembayaran
       if (res.pay_url) {
-        goto(`/checkout/portal?invoice=${res.invoice_no}&url=${encodeURIComponent(res.pay_url)}`);
+        const cred = encodeURIComponent(viewToken || data.email);
+        goto(`/checkout/portal?invoice=${res.invoice_no}&url=${encodeURIComponent(res.pay_url)}&cred=${cred}`);
       } else {
         goto(`/payment/${res.invoice_no}`);
       }

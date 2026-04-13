@@ -27,7 +27,7 @@
     : 1;
 </script>
 
-<svelte:head><title>Dashboard — DigiStore Admin</title></svelte:head>
+<svelte:head><title>Dashboard — Digitalkuh Murah Admin</title></svelte:head>
 
 {#if loading}
   <div style="color:var(--text-muted);padding:2rem">Memuat data…</div>

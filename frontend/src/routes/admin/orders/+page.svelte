@@ -60,7 +60,7 @@
     }
   }
 
-  const statuses = ['pending','paid','script_executed','cancelled','expired'];
+  const statuses = ['pending','paid','script_executed','cancelled'];
 </script>
 
 <svelte:head><title>Pesanan — DigiStore Admin</title></svelte:head>
@@ -201,6 +201,4 @@
 .status-select.badge-pending { background:#FAEEDA;color:#854F0B; }
 .status-select.badge-script_executed { background:#E6F1FB;color:#185FA5; }
 .status-select.badge-cancelled { background:#FCEBEB;color:#8c2626; }
-.status-select.badge-expired { background:#FCEBEB;color:#c93333; }
-
 </style>

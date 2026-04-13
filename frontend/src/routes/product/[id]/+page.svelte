@@ -30,7 +30,7 @@
 </script>
 
 <svelte:head>
-  <title>{product?.name || 'Produk'} — Digitalku Murah</title>
+  <title>{product?.name || 'Produk'} — DigiStore</title>
   {#if product?.description}<meta name="description" content={product.description} />{/if}
 </svelte:head>
 
@@ -39,7 +39,7 @@
   <div style="max-width:900px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
       <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
-      Digitalku Murah
+      DigiStore
     </a>
     <span style="color:var(--text-muted);font-size:13px;margin-left:4px">/ {loading ? '…' : (product?.name || 'Produk')}</span>
     <div style="display:flex;gap:8px;margin-left:auto">

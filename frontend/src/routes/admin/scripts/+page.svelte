@@ -39,7 +39,7 @@
   };
 </script>
 
-<svelte:head><title>Script Logs — Digitalku Murah Admin</title></svelte:head>
+<svelte:head><title>Script Logs — Digitalkuh Murah Admin</title></svelte:head>
 
 <div class="page-header">
   <h1 class="page-title">Script Execution Log</h1>
