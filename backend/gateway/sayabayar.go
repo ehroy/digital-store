@@ -32,6 +32,7 @@ type SBCreateRequest struct {
 	Amount            int64  `json:"amount"`
 	Description       string `json:"description"`
 	ChannelPreference string `json:"channel_preference"` // "platform" | "client"
+	Redirect_Url      string `json:"redirect_url"`
 	ExpiredMinutes    int    `json:"expired_minutes,omitempty"`
 }
 

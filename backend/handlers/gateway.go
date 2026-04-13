@@ -99,7 +99,7 @@ func createGatewayCharge(order *models.Order, appBaseURL string) GatewayResult {
 
 	switch resolveGateway(&cfg) {
 	case "sayabayar":
-		return createSayaBayarCharge(order, &cfg)
+		return createSayaBayarCharge(order, &cfg, appBaseURL)
 	case "dompetx":
 		return createDompetXCharge(order, &cfg, appBaseURL)
 	}
@@ -108,7 +108,7 @@ func createGatewayCharge(order *models.Order, appBaseURL string) GatewayResult {
 
 // ── SayaBayar charge ──────────────────────────────────────────────────────────
 
-func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig) GatewayResult {
+func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig, appBaseURL string) GatewayResult {
 	sb := gateway.NewSayaBayar(cfg.SayaBayarAPIKey)
 
 	expHours := cfg.PaymentExpireHours
@@ -124,6 +124,7 @@ func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig) Gatew
 		Amount:            order.Total,
 		Description:       fmt.Sprintf("[%s] %s", order.InvoiceNo, order.ProductName),
 		ChannelPreference: channel,
+		Redirect_Url:      appBaseURL + "/payment/" + order.InvoiceNo,
 		ExpiredMinutes:    expHours * 60,
 	})
 	if err != nil {
