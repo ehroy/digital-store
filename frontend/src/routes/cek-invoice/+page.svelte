@@ -56,13 +56,13 @@
   };
 </script>
 
-<svelte:head><title>Cek Invoice — Digitalkuh Murah</title></svelte:head>
+<svelte:head><title>Cek Invoice — DigiStore</title></svelte:head>
 
 <nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem">
   <div style="max-width:700px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
       <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
-      Digitalkuh Murah
+      DigiStore
     </a>
     <span style="margin-left:auto;font-size:13px;color:var(--text-muted)">Cek Invoice</span>
   </div>
@@ -74,7 +74,8 @@
   <div class="card" style="margin-bottom:1.5rem">
     <div style="font-weight:500;font-size:16px;margin-bottom:4px">🔍 Cek Status Invoice</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-      Masukkan nomor invoice dan email yang digunakan saat pembelian untuk verifikasi keamanan.
+      Masukkan nomor invoice dan email yang digunakan saat pembelian untuk verifikasi.<br/>
+      <span style="font-size:12px">Bisa menggunakan nomor invoice DigiStore (<code style="font-size:11px">INV-xxx</code>) atau nomor invoice dari SayaBayar/DompetX.</span>
     </div>
 
     <div style="display:flex;flex-direction:column;gap:10px">

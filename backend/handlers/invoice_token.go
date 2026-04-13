@@ -29,7 +29,7 @@ func GenerateViewToken(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := database.DB.Where("invoice_no = ?", no).First(&order).Error; err != nil {
+	if err := database.DB.Where("invoice_no = ? OR gateway_invoice_no = ?", no, no).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "invoice tidak ditemukan"})
 		return
 	}

@@ -139,7 +139,9 @@ func GetInvoicePublic(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := database.DB.Where("invoice_no = ?", no).First(&order).Error; err != nil {
+	// Cari berdasarkan invoice_no internal ATAU gateway_invoice_no (mis: nomor invoice SayaBayar)
+	err := database.DB.Where("invoice_no = ? OR gateway_invoice_no = ?", no, no).First(&order).Error
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "invoice tidak ditemukan"})
 		return
 	}
@@ -160,7 +162,7 @@ func GetInvoicePublic(c *gin.Context) {
 	// Sync status dari gateway jika masih pending
 	if order.Status == "pending" && order.GatewayChargeID != "" {
 		CheckAndSyncGatewayStatus(&order)
-		database.DB.Where("invoice_no = ?", no).First(&order)
+		database.DB.Where("invoice_no = ? OR gateway_invoice_no = ?", no, no).First(&order)
 	}
 
 	// Cek apakah sudah expired tapi belum di-cancel

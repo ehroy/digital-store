@@ -32,17 +32,17 @@
   });
 </script>
 
-<svelte:head><title>Digitalkuh Murah — Produk Digital</title></svelte:head>
+<svelte:head><title>DigiStore — Produk Digital</title></svelte:head>
 
 <nav class="store-nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
       <span class="nav-logo">🛍</span>
-      <span>Digitalkuh Murah</span>
+      <span>DigiStore</span>
     </a>
     <div style="display:flex;gap:8px;margin-left:auto">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
-
+      <a href="/login" class="btn btn-sm">Admin →</a>
     </div>
   </div>
 </nav>
@@ -153,7 +153,7 @@
 .product-card:hover:not(.out-of-stock) { box-shadow:0 4px 18px rgba(0,0,0,0.08); }
 .out-of-stock { opacity:0.7; }
 .product-icon { font-size:40px;text-align:center;background:#f8f8f6;border-radius:var(--radius);padding:1rem; }
-.product-img-wrap { border-radius:var(--radius);overflow:hidden;background:#f8f8f6;aspect-ratio:16/9; }
+.product-img-wrap { border-radius:var(--radius);overflow:hidden;background:#f8f8f6;aspect-ratio:16/16; }
 .product-img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s; }
 .product-card:hover .product-img { transform:scale(1.04); }
 .product-body { flex:1; }

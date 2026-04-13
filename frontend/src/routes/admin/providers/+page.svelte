@@ -97,7 +97,7 @@
   $: productName = (id) => products.find(p => p.id === Number(id))?.name || '-';
 </script>
 
-<svelte:head><title>Provider Stok — Digitalkuh Murah Admin</title></svelte:head>
+<svelte:head><title>Provider Stok — DigiStore Admin</title></svelte:head>
 
 <div class="page-header">
   <h1 class="page-title">🔌 Provider Stok</h1>

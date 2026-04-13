@@ -3,7 +3,7 @@
   import { IDR } from '$lib/utils.js';
 
   export let product;
-  // console.log('BuyModal product', product);
+  console.log(product)
   const dispatch = createEventDispatcher();
 
   let name = '';
