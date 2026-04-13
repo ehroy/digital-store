@@ -14,7 +14,7 @@
   function submit() {
     if (!name.trim()) { error = 'Nama wajib diisi.'; return; }
     if (!email.includes('@') || !email.includes('.')) { error = 'Format email tidak valid.'; return; }
-    if (qty < 1 || qty > product.stock) { error = `Jumlah harus antara 1 dan ${product.stock}.`; return; }
+    if (qty < 1 || qty > product.available_stock) { error = `Jumlah harus antara 1 dan ${product.available_stock}.`; return; }
     error = '';
     dispatch('checkout', { product, name, email, qty, total: product.price * qty });
   }
