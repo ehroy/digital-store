@@ -52,7 +52,7 @@ func SendInvoiceWithItems(order *models.Order, items []string) {
 	}
 
 	body := buildBase(order, deliveryHTML.String())
-	Send(order.BuyerEmail, fmt.Sprintf("Invoice %s — DigiStore ✅", order.InvoiceNo), body)
+	Send(order.BuyerEmail, fmt.Sprintf("Invoice %s — Digitalku Murah ✅", order.InvoiceNo), body)
 }
 
 // =========================
@@ -68,7 +68,7 @@ func SendInvoiceService(order *models.Order) {
 	</div>`
 
 	body := buildBase(order, notice)
-	Send(order.BuyerEmail, fmt.Sprintf("Invoice %s — DigiStore", order.InvoiceNo), body)
+	Send(order.BuyerEmail, fmt.Sprintf("Invoice %s — Digitalku Murah", order.InvoiceNo), body)
 }
 
 // =========================
@@ -139,12 +139,12 @@ func buildBase(order *models.Order, deliverySection string) string {
 	return fmt.Sprintf(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:sans-serif;max-width:580px;margin:0 auto;color:#222;font-size:14px">
   <div style="background:#0d5fa8;padding:22px 28px;border-radius:10px 10px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:21px">🛍 DigiStore</h1>
+    <h1 style="color:#fff;margin:0;font-size:21px">🛍 Digitalku Murah</h1>
     <p style="color:#cde;margin:4px 0 0;font-size:13px">Invoice Pembelian Digital</p>
   </div>
 
   <div style="border:1px solid #e0e0e0;border-top:none;padding:26px 28px;border-radius:0 0 10px 10px">
-    <p>Halo <strong>%s</strong>, terima kasih telah berbelanja di DigiStore!</p>
+    <p>Halo <strong>%s</strong>, terima kasih telah berbelanja di Digitalku Murah!</p>
 
     <table style="width:100%%;border-collapse:collapse;background:#f8f8f8;border-radius:8px;overflow:hidden;margin:16px 0">
       <tr><td style="padding:9px 14px;color:#666;font-size:12px">INVOICE</td>
