@@ -72,7 +72,7 @@
     <div style="display:flex;gap:8px;margin-left:auto">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
       <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
-      <a href="/login" class="btn btn-sm">Admin →</a>
+
     </div>
   </div>
 </nav>
@@ -198,7 +198,7 @@
 .product-card { background:#fff;border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:box-shadow 0.2s; }
 .product-card:hover:not(.out-of-stock) { box-shadow:0 4px 18px rgba(0,0,0,0.08); }
 .out-of-stock { opacity:0.7; }
-.product-img-wrap { border-radius:var(--radius);overflow:hidden;background:#f8f8f6;aspect-ratio:16/9; }
+.product-img-wrap { border-radius:var(--radius);overflow:hidden;background:#f8f8f6;aspect-ratio:16/16; }
 .product-img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s; }
 .product-card:hover .product-img { transform:scale(1.04); }
 .product-icon { font-size:40px;text-align:center;background:#f8f8f6;border-radius:var(--radius);padding:1rem; }
