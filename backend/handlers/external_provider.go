@@ -347,7 +347,7 @@ func StartProviderSyncJob() {
 	go func() {
 		// Delay 30 detik setelah startup baru mulai
 		time.Sleep(30 * time.Second)
-		ticker := time.NewTicker(15 * time.Minute)
+		ticker := time.NewTicker(120 * time.Minute)
 		defer ticker.Stop()
 		log.Println("🔄 Provider stock sync job dimulai — interval 15 menit")
 		// Sync pertama kali

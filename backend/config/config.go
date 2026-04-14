@@ -18,6 +18,8 @@ type Config struct {
 	SMTPPass   string
 	SMTPFrom   string
 	FrontendURL string
+	ResendAPIKey string
+	EmailFrom string
 }
 
 var App Config
@@ -37,6 +39,8 @@ func Load() {
 		SMTPPass:    getEnv("SMTP_PASS", ""),
 		SMTPFrom:    getEnv("SMTP_FROM", "noreply@digistore.id"),
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+		ResendAPIKey: getEnv("APIKEY_RESEND",""),
+		EmailFrom:	getEnv("SMTP_FROM", "noreply@digitalku-murah.com"),
 	}
 }
 

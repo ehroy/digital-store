@@ -329,7 +329,7 @@ func deliverOrder(order *models.Order) {
 		database.DB.First(&product, order.ProductID)
 		if product.Script != "" {
 			go func() {
-				result := scripts.Execute(product.Script, order, email.Send)
+				result := scripts.Execute(product.Script, order, email.SendWrapper)
 				actJSON, _ := json.Marshal(result.Actions)
 				database.DB.Create(&models.ScriptLog{
 					OrderID: order.ID, InvoiceNo: order.InvoiceNo, Product: order.ProductName,
