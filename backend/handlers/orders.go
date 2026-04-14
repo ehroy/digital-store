@@ -87,6 +87,32 @@ func CreateOrder(c *gin.Context) {
 		order.ExpiredAt        = gwResult.ExpiredAt
 		go email.SendPendingInvoice(&order, gwResult.PayURL, gwResult.PayCode)
 	} else {
+		// Produk tipe provider: cek stok cache, lalu order ke KoalaStore
+		if product.Type == "provider" {
+			// Cek stok dari cache ProviderProduct
+			var pp models.ProviderProduct
+			if dbErr := database.DB.Where("code = ?", product.ProviderCode).First(&pp).Error; dbErr == nil {
+				if pp.Stock == "out_of_stock" {
+					database.DB.Delete(&order)
+					c.JSON(http.StatusBadRequest, gin.H{"error": "stok habis di provider, coba beberapa saat lagi"})
+					return
+				}
+			}
+			delivered, err := OrderFromKoalaStore(&order, &product)
+			if err != nil {
+				database.DB.Delete(&order)
+				c.JSON(http.StatusBadGateway, gin.H{"error": "gagal order ke provider: " + err.Error()})
+				return
+			}
+			deliveredJSON, _ := json.Marshal(delivered)
+			database.DB.Model(&order).Updates(map[string]interface{}{
+				"delivered_items": string(deliveredJSON), "status": "paid",
+			})
+			order.DeliveredItems = string(deliveredJSON)
+			order.Status = "paid"
+			go email.SendInvoiceWithItems(&order, delivered)
+		} else
+
 		// Mode manual
 		if product.Type == "stock" {
 			claimed, err := ClaimStockItems(product.ID, req.Qty, order.InvoiceNo)

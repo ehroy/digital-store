@@ -19,14 +19,34 @@ func GetProducts(c *gin.Context) {
 	}
 	query.Find(&products)
 
-	// Hitung stok tersedia untuk setiap produk
 	for i := range products {
-		if products[i].Type == "stock" {
+		switch products[i].Type {
+
+		case "stock":
+			// Stok manual: hitung dari tabel product_stocks
 			var avail, total int64
 			database.DB.Model(&models.ProductStock{}).Where("product_id = ?", products[i].ID).Count(&total)
 			database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", products[i].ID, false).Count(&avail)
 			products[i].AvailableStock = int(avail)
 			products[i].TotalStock = int(total)
+
+		case "provider":
+			// Stok provider: ambil data real dari cache ProviderProduct
+			var pp models.ProviderProduct
+			if err := database.DB.Where("code = ?", products[i].ProviderCode).First(&pp).Error; err == nil {
+				products[i].ProviderStock  = pp.AvailableStock  // stok real dari KoalaStore sync
+				products[i].ProviderStatus = pp.Stock           // "available"|"out_of_stock"|"manual"
+				// AvailableStock diisi juga untuk kompatibilitas frontend
+				if pp.Stock == "out_of_stock" {
+					products[i].AvailableStock = 0
+				} else {
+					products[i].AvailableStock = pp.AvailableStock
+				}
+			} else {
+				// Belum pernah sync
+				products[i].ProviderStatus = "unknown"
+				products[i].AvailableStock = 0
+			}
 		}
 	}
 
@@ -39,12 +59,26 @@ func GetProduct(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "produk tidak ditemukan"})
 		return
 	}
-	if p.Type == "stock" {
+	switch p.Type {
+	case "stock":
 		var avail, total int64
 		database.DB.Model(&models.ProductStock{}).Where("product_id = ?", p.ID).Count(&total)
 		database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", p.ID, false).Count(&avail)
 		p.AvailableStock = int(avail)
 		p.TotalStock = int(total)
+	case "provider":
+		var pp models.ProviderProduct
+		if err := database.DB.Where("code = ?", p.ProviderCode).First(&pp).Error; err == nil {
+			p.ProviderStock  = pp.AvailableStock
+			p.ProviderStatus = pp.Stock
+			if pp.Stock == "out_of_stock" {
+				p.AvailableStock = 0
+			} else {
+				p.AvailableStock = pp.AvailableStock
+			}
+		} else {
+			p.ProviderStatus = "unknown"
+		}
 	}
 	c.JSON(http.StatusOK, p)
 }

@@ -124,7 +124,7 @@ func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig, appBa
 		Amount:            order.Total,
 		Description:       fmt.Sprintf("[%s] %s", order.InvoiceNo, order.ProductName),
 		ChannelPreference: channel,
-		Redirect_Url:      appBaseURL + "/payment/" + order.InvoiceNo,
+		Redirect: 		   appBaseURL + "/payment/" + order.InvoiceNo,
 		ExpiredMinutes:    expHours * 60,
 	})
 	if err != nil {
@@ -281,6 +281,29 @@ func handleWebhookEvent(invoiceNo, event, status string, c *gin.Context) {
 // ── deliverOrder ──────────────────────────────────────────────────────────────
 
 func deliverOrder(order *models.Order) {
+	// Produk tipe provider: order langsung ke KoalaStore saat payment dikonfirmasi
+	if order.ProductType == "provider" {
+		if order.DeliveredItems != "" {
+			database.DB.Model(order).Update("status", "paid")
+			return
+		}
+		var product models.Product
+		database.DB.First(&product, order.ProductID)
+		delivered, err := OrderFromKoalaStore(order, &product)
+		if err != nil {
+			log.Printf("[DELIVER] KoalaStore order gagal %s: %v", order.InvoiceNo, err)
+			database.DB.Model(order).Update("status", "failed")
+			return
+		}
+		deliveredJSON, _ := json.Marshal(delivered)
+		database.DB.Model(order).Updates(map[string]interface{}{
+			"delivered_items": string(deliveredJSON), "status": "paid",
+		})
+		order.DeliveredItems = string(deliveredJSON)
+		order.Status = "paid"
+		go email.SendInvoiceWithItems(order, delivered)
+		return
+	}
 	if order.ProductType == "stock" {
 		if order.DeliveredItems != "" {
 			database.DB.Model(order).Update("status", "paid")

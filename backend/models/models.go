@@ -13,8 +13,19 @@ type Product struct {
 	Active         bool      `json:"active"          gorm:"default:true"`
 	ImageURL       string    `json:"image_url"       gorm:"default:''"`
 	Script         string    `json:"script"          gorm:"type:text"`
-	AvailableStock int       `json:"available_stock" gorm:"-"`
-	TotalStock     int       `json:"total_stock"     gorm:"-"`
+	AvailableStock  int    `json:"available_stock"  gorm:"-"` // untuk tipe stock: jumlah item tersedia
+	TotalStock      int    `json:"total_stock"      gorm:"-"` // untuk tipe stock: total item
+	ProviderStock   int    `json:"provider_stock"   gorm:"-"` // untuk tipe provider: stok real dari KoalaStore
+	ProviderStatus  string `json:"provider_status"  gorm:"-"` // "available"|"out_of_stock"|"manual"
+
+	// Provider product fields — diisi jika Type = "provider"
+	// Produk diambil dari API provider eksternal (mis: KoalaStore)
+	ProviderName   string    `json:"provider_name"   gorm:"default:''"`  // nama provider
+	ProviderCode   string    `json:"provider_code"   gorm:"default:''"`  // kode produk di provider
+	ProviderPrice  int64     `json:"provider_price"  gorm:"default:0"`   // harga beli dari provider
+	MarkupType     string    `json:"markup_type"     gorm:"default:'percent'"` // "percent" | "fixed"
+	MarkupValue    float64   `json:"markup_value"    gorm:"default:0"`   // persen atau nominal
+	AutoSync       bool      `json:"auto_sync"       gorm:"default:false"` // sync harga otomatis
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -143,4 +154,78 @@ type PullLog struct {
 	Count      int       `json:"count"`      // item berhasil ditambahkan
 	Message    string    `json:"message"     gorm:"type:text"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+// ── ExternalProvider ──────────────────────────────────────────────────────────
+// Konfigurasi koneksi ke provider eksternal seperti KoalaStore.
+// Satu provider bisa menyuplai banyak produk.
+
+type ExternalProvider struct {
+	ID          uint      `json:"id"           gorm:"primaryKey;autoIncrement"`
+	Name        string    `json:"name"         gorm:"not null"`       // "KoalaStore", "DigiFlazz", dll
+	Type        string    `json:"type"         gorm:"not null"`       // "koalastore" | "digiflazz" | "generic"
+	BaseURL     string    `json:"base_url"     gorm:"not null"`       // https://koalastore.digital/api
+	APIKey      string    `json:"api_key"      gorm:"type:text"`      // API key / token
+	Username    string    `json:"username"     gorm:"default:''"`     // jika butuh username
+	ExtraConfig string    `json:"extra_config" gorm:"type:text"`      // JSON config tambahan
+	Active      bool      `json:"active"       gorm:"default:true"`
+	// Cache daftar produk dari provider
+	LastSyncAt  *time.Time `json:"last_sync_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// ProviderProduct — cache produk yang tersedia di provider
+// Diisi saat sync, admin memilih mana yang mau dijual
+type ProviderProduct struct {
+	ID             uint      `json:"id"              gorm:"primaryKey;autoIncrement"`
+	ProviderID     uint      `json:"provider_id"     gorm:"not null;index"`
+	ProviderName   string    `json:"provider_name"`
+	Code           string    `json:"code"            gorm:"not null"`    // code_variant dari KoalaStore
+	Name           string    `json:"name"            gorm:"not null"`
+	Category       string    `json:"category"`
+	ProviderPrice  int64     `json:"provider_price"`
+	// Stock status dari KoalaStore: "available" | "out_of_stock" | "manual"
+	Stock          string    `json:"stock"           gorm:"default:'unknown'"`
+	// Jumlah stok real dari KoalaStore (field available_stock dari response API)
+	AvailableStock int       `json:"available_stock" gorm:"default:0"`
+	IsManual       bool      `json:"is_manual"       gorm:"default:false"` // is_manual_process
+	Description    string    `json:"description"     gorm:"type:text"`
+	ProductID      *uint     `json:"product_id"`
+	Imported       bool      `json:"imported"        gorm:"default:false"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// ProviderOrder — log pemesanan ke provider saat ada order masuk
+type ProviderOrder struct {
+	ID              uint      `json:"id"               gorm:"primaryKey;autoIncrement"`
+	OrderID         uint      `json:"order_id"         gorm:"index"`
+	InvoiceNo       string    `json:"invoice_no"`
+	ProviderID      uint      `json:"provider_id"`
+	ProviderCode    string    `json:"provider_code"`   // kode produk di provider
+	ProviderOrderID string    `json:"provider_order_id"` // ID order dari provider
+	Status          string    `json:"status"`          // pending | success | failed
+	Serial          string    `json:"serial"           gorm:"type:text"` // nomor seri / hasil dari provider
+	Message         string    `json:"message"          gorm:"type:text"`
+	PricePaid       int64     `json:"price_paid"`      // harga yang dibayar ke provider
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// ── ContactConfig ─────────────────────────────────────────────────────────────
+// Konfigurasi kontak dan sosial media yang ditampilkan di toko dan halaman komplain.
+
+type ContactConfig struct {
+	ID              uint   `json:"id"               gorm:"primaryKey"`
+	WhatsApp        string `json:"whatsapp"         gorm:"default:''"` // nomor WA, mis: 6281234567890
+	WhatsAppLabel   string `json:"whatsapp_label"   gorm:"default:'Hubungi CS'"`
+	Telegram        string `json:"telegram"         gorm:"default:''"` // username atau link
+	Instagram       string `json:"instagram"        gorm:"default:''"` // @username
+	Email           string `json:"email"            gorm:"default:''"` // email support
+	Website         string `json:"website"          gorm:"default:''"`
+	BusinessName    string `json:"business_name"    gorm:"default:'DigiStore'"`
+	BusinessDesc    string `json:"business_desc"    gorm:"type:text;default:''"`
+	// Pesan template untuk WA/Telegram
+	ComplaintTemplate string `json:"complaint_template" gorm:"type:text;default:''"`
+	OperationalHours  string `json:"operational_hours"  gorm:"default:'Senin - Sabtu, 08.00 - 21.00 WIB'"`
 }

@@ -159,12 +159,10 @@
               ['Jumlah', `${data.qty} pcs`],
               ['Metode', PAY_LABEL[data.pay_method] || data.pay_method],
             ] as [l,v], i}
-              <tbody>
-                <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
+              <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
                 <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:38%">{l}</td>
                 <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
               </tr>
-              </tbody>
             {/each}
             <tbody>
               <tr style="border-top:2px solid #0d5fa8">

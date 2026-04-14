@@ -15,6 +15,7 @@ func main() {
 	config.Load()
 	database.Init()
 	handlers.StartExpiryJob()
+	handlers.StartProviderSyncJob()
 
 	r := gin.Default()
 	r.MaxMultipartMemory = 8 << 20
@@ -38,6 +39,7 @@ func main() {
 		api.GET("/invoice/:no", handlers.GetInvoicePublic)
 		api.POST("/invoice/:no/token", handlers.GenerateViewToken)
 		api.GET("/payment/methods", handlers.GetPaymentMethods)
+		api.GET("/contact", handlers.GetContactConfig)
 
 		// Webhook dari masing-masing gateway (public, no JWT)
 		api.POST("/webhook/dompetx",   handlers.WebhookDompetX)
@@ -70,8 +72,21 @@ func main() {
 			adm.PUT("/payment/config",  handlers.UpdatePaymentConfig)
 
 			adm.GET("/scripts/logs", handlers.GetScriptLogs)
+			adm.GET("/contact",       handlers.GetContactConfig)
+			adm.PUT("/contact",       handlers.UpdateContactConfig)
 
-			// Stock providers
+			// External providers (KoalaStore, dll)
+			adm.GET("/external-providers",            handlers.GetExternalProviders)
+			adm.POST("/external-providers",           handlers.CreateExternalProvider)
+			adm.PUT("/external-providers/:id",        handlers.UpdateExternalProvider)
+			adm.DELETE("/external-providers/:id",     handlers.DeleteExternalProvider)
+			adm.POST("/external-providers/:id/sync",     handlers.SyncProviderProducts)
+			adm.GET("/external-providers/:id/products",  handlers.GetProviderProducts)
+			adm.GET("/external-providers/:id/balance",   handlers.GetProviderBalance)
+			adm.POST("/external-providers/:id/import",   handlers.ImportProviderProducts)
+			adm.POST("/external-providers/sync-prices",  handlers.SyncProviderPrices)
+
+			// Stock providers (pull log)
 			adm.GET("/providers",            handlers.GetProviders)
 			adm.POST("/providers",           handlers.CreateProvider)
 			adm.PUT("/providers/:id",        handlers.UpdateProvider)

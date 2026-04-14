@@ -11,14 +11,50 @@
   let qty = 1;
   let error = '';
 
-  function submit() {
-    if (!name.trim()) { error = 'Nama wajib diisi.'; return; }
-    if (!email.includes('@') || !email.includes('.')) { error = 'Format email tidak valid.'; return; }
-    if (qty < 1 || qty > product.available_stock) { error = `Jumlah harus antara 1 dan ${product.available_stock}.`; return; }
-    error = '';
-    dispatch('checkout', { product, name, email, qty, total: product.price * qty });
+ function submit() {
+  if (!name.trim()) {
+    error = 'Nama wajib diisi.';
+    return;
   }
 
+  if (!email.includes('@') || !email.includes('.')) {
+    error = 'Format email tidak valid.';
+    return;
+  }
+
+  // 🚀 PROVIDER MODE (UNLIMITED QTY)
+  if (product.type === 'provider' && product.provider_status === 'available') {
+    if (qty < 1) {
+      error = 'Jumlah minimal 1.';
+      return;
+    }
+
+    error = '';
+    dispatch('checkout', {
+      product,
+      name,
+      email,
+      qty,
+      total: product.price * qty
+    });
+    return;
+  }
+
+  // ❌ NON-PROVIDER (pakai stock biasa)
+  if (qty < 1 || qty > product.available_stock) {
+    error = `Jumlah harus antara 1 dan ${product.available_stock}.`;
+    return;
+  }
+
+  error = '';
+  dispatch('checkout', {
+    product,
+    name,
+    email,
+    qty,
+    total: product.price * qty
+  });
+}
   function overlay(e) { if (e.target === e.currentTarget) dispatch('close'); }
 </script>
 
@@ -49,12 +85,32 @@
       </div>
       <div>
         <label class="field-label">Jumlah</label>
-        <div class="qty-row">
-          <button class="btn btn-sm" on:click={() => qty = Math.max(1, qty - 1)}>−</button>
-          <span class="qty-val">{qty}</span>
-          <button class="btn btn-sm" on:click={() => qty = Math.min(product.available_stock, qty + 1)}>+</button>
-          <span style="font-size:12px;color:var(--text-muted)">Maks {product.available_stock}</span>
-        </div>
+       <div class="qty-row">
+        <button class="btn btn-sm" on:click={() => qty = Math.max(1, qty - 1)}>−</button>
+
+        <span class="qty-val">{qty}</span>
+
+        <button
+          class="btn btn-sm"
+          on:click={() => {
+            if (product.type === 'provider' && product.provider_status === 'available') {
+              qty = qty + 1; // 🚀 unlimited
+            } else {
+              qty = Math.min(product.available_stock, qty + 1);
+            }
+          }}
+        >
+          +
+        </button>
+
+        <span style="font-size:12px;color:var(--text-muted)">
+          {#if product.type === 'provider' && product.provider_status === 'available'}
+            Stock Tergantung penyedia
+          {:else}
+            Maks {product.available_stock}
+          {/if}
+        </span>
+      </div>
       </div>
 
       {#if error}<div class="alert-error">{error}</div>{/if}

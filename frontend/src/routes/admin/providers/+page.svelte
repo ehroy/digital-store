@@ -274,7 +274,7 @@
             <div>
               <label class="field-label">Request Body (JSON)</label>
               <textarea class="input mono" rows="3" style="resize:vertical" bind:value={form.api_body}
-                placeholder='{{"limit":100,"page":1}}'></textarea>
+                placeholder='{{"limit":20,"page":1}}'></textarea>
             </div>
           {/if}
 

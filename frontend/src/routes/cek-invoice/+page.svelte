@@ -156,12 +156,12 @@
             <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
           </tr>
         {/each}
-       <tbody>
-         <tr style="border-top:2px solid #0d5fa8">
+        <tbody>
+          <tr style="border-top:2px solid #0d5fa8">
           <td style="padding:11px 16px;font-weight:600">Total</td>
           <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:#0d5fa8">{IDR(result.total)}</td>
         </tr>
-       </tbody>
+        </tbody>
       </table>
     </div>
 

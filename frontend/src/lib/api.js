@@ -51,6 +51,7 @@ export const api = {
   },
   generateInvoiceToken: (no, email) => req('POST', `/invoice/${no}/token`, { email }),
   getPaymentMethods: () => req('GET', '/payment/methods'),
+  getContact: () => req('GET', '/contact'),
 
   // Admin - dashboard
   dashboard: () => req('GET', '/dashboard', null, true),
@@ -82,6 +83,17 @@ export const api = {
   // Admin - scripts
   scriptLogs: () => req('GET', '/scripts/logs', null, true),
 
+  // External providers (KoalaStore dll)
+  getExtProviders: () => req('GET', '/external-providers', null, true),
+  createExtProvider: (body) => req('POST', '/external-providers', body, true),
+  updateExtProvider: (id, body) => req('PUT', `/external-providers/${id}`, body, true),
+  deleteExtProvider: (id) => req('DELETE', `/external-providers/${id}`, null, true),
+  syncExtProvider: (id) => req('POST', `/external-providers/${id}/sync`, null, true),
+  getExtProviderProducts: (id, qs='') => req('GET', `/external-providers/${id}/products${qs}`, null, true),
+  getExtProviderBalance: (id) => req('GET', `/external-providers/${id}/balance`, null, true),
+  importProviderProducts: (id, body) => req('POST', `/external-providers/${id}/import`, body, true),
+  syncProviderPrices: () => req('POST', '/external-providers/sync-prices', null, true),
+
   // Admin - stock providers
   getProviders: (productId = '') => req('GET', `/providers${productId ? '?product_id=' + productId : ''}`, null, true),
   createProvider: (body) => req('POST', '/providers', body, true),
@@ -90,6 +102,8 @@ export const api = {
   pullFromProvider: (id) => req('POST', `/providers/${id}/pull`, null, true),
   getProviderLogs: (id) => req('GET', `/providers/${id}/logs`, null, true),
   getAllPullLogs: () => req('GET', '/pull-logs', null, true),
+  getAdminContact: () => req('GET', '/contact', null, true),
+  updateContact: (body) => req('PUT', '/contact', body, true),
 
   // Admin - product image (multipart — tidak pakai req() biasa)
   uploadProductImage: async (productId, file) => {

@@ -28,6 +28,9 @@ func Init() {
 		&models.ScriptLog{},
 		&models.StockProvider{},
 		&models.PullLog{},
+		&models.ExternalProvider{},
+		&models.ProviderProduct{},
+		&models.ProviderOrder{},
 	); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
@@ -45,6 +48,10 @@ func seed() {
 			Dana: "081234567890", Gopay: "081234567890", Ovo: "081234567890", QRIS: true,
 		})
 	}
+
+	var cc models.ContactConfig
+	DB.FirstOrCreate(&cc, models.ContactConfig{ID: 1})
+	if cc.BusinessName == "" { cc.BusinessName = "DigiStore"; DB.Save(&cc) }
 
 	DB.Model(&models.Product{}).Count(&count)
 	if count == 0 {

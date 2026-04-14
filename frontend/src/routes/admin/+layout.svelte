@@ -20,7 +20,9 @@
     { href: '/admin/orders', label: 'Pesanan', icon: '🧾' },
     { href: '/admin/payment', label: 'Pembayaran', icon: '💳' },
     { href: '/admin/scripts', label: 'Script Logs', icon: '⚙️' },
-    { href: '/admin/providers', label: 'Provider Stok', icon: '🔌' },
+    { href: '/admin/providers', label: 'Pull Provider', icon: '🔌' },
+    { href: '/admin/koalastore', label: 'KoalaStore', icon: '🐨' },
+    { href: '/admin/contact', label: 'Kontak & Support', icon: '📞' },
   ];
 
   $: current = $page.url.pathname;
