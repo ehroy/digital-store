@@ -47,7 +47,7 @@ func SendInvoiceWithItems(order *models.Order, items []string) {
 		}
 
 		deliveryHTML.WriteString(`</table>
-		<p style="font-size:12px;color:#888;margin-top:8px">⚠️ Simpan email ini. Link/key berlaku permanen.</p>
+		<p style="font-size:12px;color:#888;margin-top:8px">⚠️ Simpan email ini. Nomer & Pin Untuk Login / Email & Password  berlaku permanen.</p>
 		</div>`)
 	}
 

@@ -221,7 +221,7 @@
                     </div>
                   {:else}
                     <div style="flex:1">
-                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">License Key:</div>
+                      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Nomer & Pin Untuk Login / Email & Password  :</div>
                       <code style="display:block;font-family:'JetBrains Mono',monospace;font-size:13px;background:#fff;border:0.5px solid var(--border);padding:8px 12px;border-radius:6px;word-break:break-all;user-select:all">{item}</code>
                     </div>
                   {/if}
