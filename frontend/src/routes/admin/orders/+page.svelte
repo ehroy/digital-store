@@ -70,7 +70,7 @@
 </div>
 
 <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-  {#each [['all','Semua'],['paid','Lunas'],['pending','Pending'],['script_executed','Script Run'],['cancelled','Dibatalkan']] as [v,l]}
+  {#each [['all','Semua'],['paid','Lunas'],['pending','Pending'],['script_executed','Script Run'],['cancelled','Dibatalkan'], ['expired','Kedaluwarsa']] as [v,l]}
     <button class="btn btn-sm {filterStatus===v?'btn-primary':''}" on:click={()=>filterStatus=v}>{l}</button>
   {/each}
 </div>
@@ -201,4 +201,6 @@
 .status-select.badge-pending { background:#FAEEDA;color:#854F0B; }
 .status-select.badge-script_executed { background:#E6F1FB;color:#185FA5; }
 .status-select.badge-cancelled { background:#FCEBEB;color:#8c2626; }
+.status-select.badge-expired { background:#FCEBEB;color:#eb0d0d; }
+
 </style>
