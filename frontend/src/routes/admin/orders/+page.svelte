@@ -60,7 +60,7 @@
     }
   }
 
-  const statuses = ['pending','paid','script_executed','cancelled'];
+  const statuses = ['pending','paid','script_executed','cancelled',"expired"];
 </script>
 
 <svelte:head><title>Pesanan — DigiStore Admin</title></svelte:head>
