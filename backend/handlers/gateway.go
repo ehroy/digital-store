@@ -390,8 +390,30 @@ func deliverOrder(order *models.Order) {
 
 	// Produk tipe provider: order langsung ke KoalaStore saat payment dikonfirmasi
 	if order.ProductType == "provider" {
+		providerProduct, provider, err := lookupProviderProductForOrder(order)
+		if err != nil {
+			log.Printf("[DELIVER] provider lookup gagal %s: %v", order.InvoiceNo, err)
+			database.DB.Model(order).Update("status", "failed")
+			return
+		}
+		if providerProduct != nil && (strings.EqualFold(providerProduct.Stock, "manual") || providerProduct.IsManual) {
+			queued, err := queueManualProviderFulfillment(order, &product)
+			if err != nil {
+				log.Printf("[DELIVER] provider manual gagal %s: %v", order.InvoiceNo, err)
+				database.DB.Model(order).Update("status", "failed")
+				return
+			}
+			if queued {
+				log.Printf("[DELIVER] provider manual ditahan %s provider=%s", order.InvoiceNo, provider.Name)
+				return
+			}
+		}
 		if order.DeliveredItems != "" {
-			database.DB.Model(order).Update("status", "paid")
+			database.DB.Model(order).Updates(map[string]any{
+				"status":             "paid",
+				"fulfillment_status": "fulfilled",
+				"is_fulfilled":       true,
+			})
 			return
 		}
 		delivered, err := OrderFromKoalaStore(order, &product)
@@ -400,19 +422,16 @@ func deliverOrder(order *models.Order) {
 			database.DB.Model(order).Update("status", "failed")
 			return
 		}
-		deliveredJSON, _ := json.Marshal(delivered)
-		database.DB.Model(order).Updates(map[string]interface{}{
-			"delivered_items": string(deliveredJSON), "status": "paid",
-		})
-		order.DeliveredItems = string(deliveredJSON)
-		order.Status = "paid"
-		runPostPaymentAutomation(order, &product)
-		go email.SendInvoiceWithItems(order, delivered)
+		finalizeOrderDelivery(order, &product, delivered)
 		return
 	}
 	if order.ProductType == "stock" {
 		if order.DeliveredItems != "" {
-			database.DB.Model(order).Update("status", "paid")
+			database.DB.Model(order).Updates(map[string]any{
+				"status":             "paid",
+				"fulfillment_status": "fulfilled",
+				"is_fulfilled":       true,
+			})
 			return
 		}
 		claimed, err := ClaimStockItems(order.ProductID, order.Qty, order.InvoiceNo)
@@ -425,16 +444,13 @@ func deliverOrder(order *models.Order) {
 		for i, it := range claimed {
 			itemData[i] = it.Data
 		}
-		deliveredJSON, _ := json.Marshal(itemData)
-		database.DB.Model(order).Updates(map[string]interface{}{
-			"delivered_items": string(deliveredJSON), "status": "paid",
-		})
-		order.DeliveredItems = string(deliveredJSON)
-		order.Status = "paid"
-		runPostPaymentAutomation(order, &product)
-		go email.SendInvoiceWithItems(order, itemData)
+		finalizeOrderDelivery(order, &product, itemData)
 	} else {
-		database.DB.Model(order).Update("status", "paid")
+		markOrderPaid(order)
+		database.DB.Model(order).Updates(map[string]any{
+			"fulfillment_status": "fulfilled",
+			"is_fulfilled":       true,
+		})
 		runPostPaymentAutomation(order, &product)
 		go email.SendInvoiceService(order)
 	}

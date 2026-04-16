@@ -46,6 +46,7 @@ func main() {
 		api.POST("/webhook/qris", handlers.WebhookDompetX)
 		api.POST("/webhook/dompetx", handlers.WebhookDompetX)
 		api.POST("/webhook/sayabayar", handlers.WebhookSayaBayar)
+		api.POST("/webhook/koalastore", handlers.WebhookKoalaStore)
 
 		adm := api.Group("/admin", middleware.AdminAuth())
 		{

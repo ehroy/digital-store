@@ -72,6 +72,26 @@ func SendInvoiceService(order *models.Order) {
 }
 
 // =========================
+// MANUAL PROVIDER NOTICE
+// =========================
+func SendManualProviderNotice(order *models.Order) {
+	etaText := "maksimal 1x24 jam"
+	if order.ExpectedDeliveryAt != nil {
+		etaText = order.ExpectedDeliveryAt.Format("02 Jan 2006 15:04")
+	}
+	notice := fmt.Sprintf(`
+	<div style="margin:20px 0;background:#FFF8E1;border-left:4px solid #FFC107;padding:14px 18px;border-radius:0 8px 8px 0">
+	  <strong style="font-size:14px">⏳ Menunggu Pengiriman Provider</strong>
+	  <p style="font-size:13px;color:#555;margin:6px 0 0">
+	    Pembayaran sudah diterima. Produk akan dikirim otomatis setelah provider mengirimkan stok, biasanya dalam <strong>%s</strong>.
+	  </p>
+	</div>`, etaText)
+
+	body := buildBase(order, notice)
+	Send(order.BuyerEmail, fmt.Sprintf("Pesanan Diproses — Invoice %s", order.InvoiceNo), body)
+}
+
+// =========================
 // RESEND SEND FUNCTION
 // =========================
 type resendPayload struct {
@@ -132,6 +152,7 @@ func SendWrapper(to, subject, body string) error {
 	Send(to, subject, body)
 	return nil
 }
+
 // =========================
 // BASE HTML TEMPLATE
 // =========================

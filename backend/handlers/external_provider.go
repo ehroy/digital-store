@@ -112,6 +112,7 @@ func SyncProviderProducts(c *gin.Context) {
 				ProviderPrice:  v.Price,
 				Stock:          stock,
 				AvailableStock: v.AvailableStock,
+				IsManual:       v.IsManualProcess,
 				Description:    p.Description,
 				UpdatedAt:      time.Now(),
 			}
@@ -126,6 +127,7 @@ func SyncProviderProducts(c *gin.Context) {
 					"provider_price":  v.Price,
 					"stock":           stock,
 					"available_stock": v.AvailableStock,
+					"is_manual":       v.IsManualProcess,
 					"name":            pp.Name,
 					"updated_at":      time.Now(),
 				})
@@ -440,6 +442,7 @@ func autoSyncAllProviders() {
 						"provider_price":  v.Price,
 						"stock":           stock,
 						"available_stock": v.AvailableStock,
+						"is_manual":       v.IsManualProcess,
 						"updated_at":      time.Now(),
 					})
 				if res.RowsAffected > 0 {

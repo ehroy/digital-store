@@ -184,6 +184,13 @@ func GetInvoicePublic(c *gin.Context) {
 	if order.Status == "paid" && order.DeliveredItems != "" {
 		json.Unmarshal([]byte(order.DeliveredItems), &items)
 	}
+	deliveryMessage := ""
+	switch order.FulfillmentStatus {
+	case "waiting_provider":
+		deliveryMessage = "Pembayaran sudah diterima. Produk akan dikirim maksimal 1x24 jam setelah provider mengirim stok."
+	case "fulfilled":
+		deliveryMessage = "Produk sudah dikirim."
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"invoice_no":             order.InvoiceNo,
@@ -196,6 +203,12 @@ func GetInvoicePublic(c *gin.Context) {
 		"total":                  order.Total,
 		"pay_method":             order.PayMethod,
 		"status":                 order.Status,
+		"fulfillment_status":     order.FulfillmentStatus,
+		"is_fulfilled":           order.IsFulfilled,
+		"paid_at":                order.PaidAt,
+		"fulfilled_at":           order.FulfilledAt,
+		"expected_delivery_at":   order.ExpectedDeliveryAt,
+		"delivery_message":       deliveryMessage,
 		"delivered_items":        items,
 		"gateway_pay_url":        order.GatewayPayURL,
 		"gateway_redirect_url":   order.GatewayRedirectURL,
@@ -290,21 +303,30 @@ func ManualDeliver(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&body)
 
-	if o.ProductType == "stock" && len(body.Items) > 0 {
-		itemsJSON, _ := json.Marshal(body.Items)
-		database.DB.Model(&o).Updates(map[string]interface{}{
-			"delivered_items": string(itemsJSON),
-			"status":          "paid",
-			"notes":           "Manual delivery by admin: " + body.Note,
-		})
-		o.DeliveredItems = string(itemsJSON)
-		o.Status = "paid"
-		go email.SendInvoiceWithItems(&o, body.Items)
-		c.JSON(http.StatusOK, gin.H{"message": "item berhasil dikirim manual", "status": "paid"})
+	if len(body.Items) > 0 {
+		var product models.Product
+		if err := database.DB.First(&product, o.ProductID).Error; err == nil {
+			finalizeOrderDelivery(&o, &product, body.Items)
+			updateProviderOrderDelivered(&o, body.Items, "Manual delivery by admin: "+body.Note)
+			database.DB.Model(&o).Update("notes", "Manual delivery by admin: "+body.Note)
+			database.DB.Where("id = ?", o.ID).First(&o)
+			c.JSON(http.StatusOK, gin.H{"message": "item berhasil dikirim manual", "status": o.Status, "fulfillment_status": o.FulfillmentStatus})
+			return
+		}
+	}
+
+	if o.ProductType == "provider" {
+		deliverOrder(&o)
+		database.DB.Where("id = ?", o.ID).First(&o)
+		message := "berhasil"
+		if o.FulfillmentStatus == "waiting_provider" {
+			message = "menunggu pengiriman provider"
+		}
+		c.JSON(http.StatusOK, gin.H{"message": message, "status": o.Status, "fulfillment_status": o.FulfillmentStatus})
 	} else {
 		deliverOrder(&o)
 		database.DB.Where("id = ?", o.ID).First(&o)
-		c.JSON(http.StatusOK, gin.H{"message": "berhasil", "status": o.Status})
+		c.JSON(http.StatusOK, gin.H{"message": "berhasil", "status": o.Status, "fulfillment_status": o.FulfillmentStatus})
 	}
 }
 

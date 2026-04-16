@@ -192,7 +192,7 @@
 
           {#if product.type === 'provider' && Array.isArray(product.variants) && product.variants.length > 0}
             <div class="variant-badges">
-              {#each product.variants.slice(0, 3) as variant}
+              {#each product.variants.slice(0, 2) as variant}
                 <span class="variant-pill">
                   {variant.variant_name || 'Varian'} · {IDR(variant.price)}
                 </span>

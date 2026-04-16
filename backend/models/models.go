@@ -68,9 +68,14 @@ type Order struct {
 	BuyerEmail  string `json:"buyer_email"`
 	PayMethod   string `json:"pay_method"`
 	// Status: pending | paid | expired | cancelled | script_executed | failed
-	Status         string `json:"status"          gorm:"default:'pending'"`
-	DeliveredItems string `json:"delivered_items" gorm:"type:text"`
-	Notes          string `json:"notes"`
+	Status             string     `json:"status"          gorm:"default:'pending'"`
+	FulfillmentStatus  string     `json:"fulfillment_status" gorm:"default:'pending'"`
+	IsFulfilled        bool       `json:"is_fulfilled"      gorm:"default:false"`
+	PaidAt             *time.Time `json:"paid_at"`
+	FulfilledAt        *time.Time `json:"fulfilled_at"`
+	ExpectedDeliveryAt *time.Time `json:"expected_delivery_at"`
+	DeliveredItems     string     `json:"delivered_items" gorm:"type:text"`
+	Notes              string     `json:"notes"`
 
 	// Payment Gateway fields
 	GatewayChargeID     string     `json:"gateway_charge_id"   gorm:"default:''"` // ID charge/invoice di sisi gateway
