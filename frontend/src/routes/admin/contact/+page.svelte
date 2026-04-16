@@ -123,12 +123,12 @@
   <div class="card">
     <div style="font-weight:500;font-size:14px;margin-bottom:6px">💬 Template Pesan Komplain</div>
     <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">
-      Template ini diisi otomatis di form komplain. Variabel: <code>{'{invoice_no}'}</code> <code>{'{product_name}'}</code> <code>{'{buyer_name}'}</code>
+      Template ini diisi otomatis di form komplain WhatsApp. Variabel: <code>{'{invoice_no}'}</code> <code>{'{product_name}'}</code> <code>{'{buyer_name}'}</code> <code>{'{buyer_email}'}</code> <code>{'{phone}'}</code> <code>{'{status}'}</code> <code>{'{issue}'}</code>
     </div>
     <textarea class="input" rows="5" style="resize:vertical" bind:value={cfg.complaint_template}
-      placeholder={`Halo, saya ingin mengajukan komplain:\n\nNomor Invoice: {invoice_no}\nProduk: {product_name}\nNama: {buyer_name}\n\nMasalah: [jelaskan masalah di sini]`}></textarea>
+      placeholder={`Halo admin, saya ingin komplain order berikut:\n\nInvoice: {invoice_no}\nProduk: {product_name}\nNama: {buyer_name}\nEmail: {buyer_email}\nNomor HP: {phone}\nStatus: {status}\n\nMasalah:\n{issue}`}></textarea>
     <div style="font-size:12px;color:var(--text-muted);margin-top:6px">
-      Template ini dikirim via WhatsApp/Telegram saat pembeli klik tombol komplain di halaman invoice.
+      Template ini dikirim via WhatsApp saat pembeli klik tombol komplain.
     </div>
   </div>
 

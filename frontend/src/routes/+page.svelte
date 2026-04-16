@@ -42,9 +42,18 @@
       return { label: 'Tersedia', color: '#2f5e0f', canBuy: true };
     }
     if (p.type === 'provider') {
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+      const availableVariants = variants.filter(v => v.stock_status !== 'out_of_stock');
+      const totalStock = variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0);
+      if (variants.length > 0) {
+        if (availableVariants.length === 0) {
+          return { label: 'Habis', color: '#8c2626', canBuy: false };
+        }
+        return { label: `${variants.length} varian`, color: '#2f5e0f', canBuy: true, stock: totalStock };
+      }
       switch (p.provider_status) {
         case 'available':
-          return { label: `Stok ${p.provider_stock ?? '?'}`, color: '#2f5e0f', canBuy: true };
+          return { label: '1 varian', color: '#2f5e0f', canBuy: true, stock: p.provider_stock ?? 0 };
         case 'out_of_stock':
           return { label: 'Habis di Provider', color: '#8c2626', canBuy: false };
         case 'manual':
@@ -69,6 +78,7 @@
       <span class="nav-logo">🛍</span>
       <span>DigiStore</span>
     </a>
+    <span class="nav-tag">Digital goods, clean checkout</span>
     <div style="display:flex;gap:8px;margin-left:auto">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
       <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
@@ -78,8 +88,23 @@
 </nav>
 
 <div class="hero">
-  <h1>Produk Digital Terbaik</h1>
-  <p>Template, ebook, plugin, dan source code berkualitas untuk mempercepat bisnis digital kamu.</p>
+  <div class="hero-panel">
+    <div class="hero-copy">
+      <div class="hero-kicker">Digital Store</div>
+      <h1>Produk digital yang simpel, elegan, dan cepat dibeli.</h1>
+      <p>Template, ebook, plugin, dan layanan digital yang dirapikan dalam tampilan minimal modern.</p>
+      <div class="hero-chips">
+        <span>Instan</span>
+        <span>Aman</span>
+        <span>Support WhatsApp</span>
+      </div>
+    </div>
+    <div class="hero-aside">
+      <div class="aside-label">Pilihan cepat</div>
+      <div class="aside-value">Checkout QRIS</div>
+      <div class="aside-sub">Invoice, status pembayaran, dan komplain semuanya rapi di satu tempat.</div>
+    </div>
+  </div>
 </div>
 
 <div class="store-container">
@@ -130,7 +155,13 @@
           </div>
 
           <div class="product-footer">
-            <div class="product-price">{IDR(product.price)}</div>
+            <div class="product-price">
+              {#if product.type === 'provider' && Array.isArray(product.variants) && product.variants.length > 0}
+                Mulai {IDR(product.price)}
+              {:else}
+                {IDR(product.price)}
+              {/if}
+            </div>
             <div class="stock-badge" style="color:{stock.color}">
               {#if product.type === 'provider' && product.provider_status === 'available'}
                 <span class="stock-dot" style="background:{stock.color}"></span>
@@ -138,6 +169,19 @@
               {stock.label}
             </div>
           </div>
+
+          {#if product.type === 'provider' && Array.isArray(product.variants) && product.variants.length > 0}
+            <div class="variant-badges">
+              {#each product.variants.slice(0, 3) as variant}
+                <span class="variant-pill">
+                  {variant.variant_name || 'Varian'} · {IDR(variant.price)}
+                </span>
+              {/each}
+              {#if product.variants.length > 3}
+                <span class="variant-pill muted">+{product.variants.length - 3} varian</span>
+              {/if}
+            </div>
+          {/if}
 
           <div style="display:grid;grid-template-columns:1fr auto;gap:7px">
             <button class="btn btn-primary"
@@ -184,42 +228,71 @@
 
 <style>
 .store-nav { position:sticky;top:0;z-index:100;background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem; }
-.nav-inner { max-width:1100px;margin:0 auto;height:54px;display:flex;align-items:center;gap:8px; }
-.nav-brand { display:flex;align-items:center;gap:8px;font-weight:500;font-size:15.5px; }
-.nav-logo { background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px; }
-.hero { text-align:center;padding:2.5rem 1rem 1.5rem;background:linear-gradient(180deg,#f0f6fd 0%,var(--bg) 100%); }
-.hero h1 { font-size:28px;font-weight:500;letter-spacing:-0.4px; }
-.hero p { color:var(--text-muted);font-size:14.5px;margin-top:8px; }
+.nav-inner { max-width:1100px;margin:0 auto;height:64px;display:flex;align-items:center;gap:10px; }
+.nav-brand { display:flex;align-items:center;gap:8px;font-weight:700;font-size:15.5px; letter-spacing:-0.02em; }
+.nav-logo { background:linear-gradient(135deg,var(--primary),#60a5fa);border-radius:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px; box-shadow:0 10px 20px rgba(21,93,252,0.18); }
+.nav-tag { font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.04); }
+.hero { padding:2.1rem 1rem 1.2rem; }
+.hero-panel {
+  max-width:1100px;margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,0.7fr);gap:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,252,0.96));
+  border:1px solid var(--border);border-radius:24px;padding:1.35rem;box-shadow:var(--shadow);
+}
+.hero-copy h1 { font-size: clamp(28px, 4vw, 42px); line-height:1.05; letter-spacing:-0.04em; margin-bottom:10px; max-width:12ch; }
+.hero-copy p { color:var(--text-muted);font-size:14.5px;max-width:58ch; }
+.hero-kicker { display:inline-flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--primary);font-weight:700;margin-bottom:10px; }
+.hero-chips { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px; }
+.hero-chips span {
+  font-size:12px;padding:6px 10px;border-radius:999px;
+  background:rgba(21,93,252,0.08);color:#0f4fd6;border:1px solid rgba(21,93,252,0.10);
+}
+.hero-aside {
+  border-radius:18px;padding:1rem 1rem 0.95rem;
+  background:linear-gradient(180deg,rgba(21,93,252,0.10),rgba(255,255,255,0.92));
+  border:1px solid rgba(21,93,252,0.12);
+  display:flex;flex-direction:column;justify-content:flex-end;gap:6px;
+}
+.aside-label { font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;font-weight:700; }
+.aside-value { font-size:22px;font-weight:800;letter-spacing:-0.03em; }
+.aside-sub { color:var(--text-muted);font-size:13px;line-height:1.6; }
 .store-container { max-width:1100px;margin:0 auto;padding:1.25rem 1rem 3rem; }
-.filter-row { display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap; }
+.filter-row { display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center; }
 .filter-row .input { flex:1;min-width:200px; }
 .cat-pills { display:flex;gap:6px;flex-wrap:wrap; }
 .product-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px; }
-.product-card { background:#fff;border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:box-shadow 0.2s; }
-.product-card:hover:not(.out-of-stock) { box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+.product-card { background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:transform 0.2s, box-shadow 0.2s, border-color 0.2s; box-shadow:0 10px 26px rgba(15,23,42,0.05); }
+.product-card:hover:not(.out-of-stock) { box-shadow:0 18px 40px rgba(15,23,42,0.10); transform:translateY(-2px); border-color:rgba(21,93,252,0.15); }
 .out-of-stock { opacity:0.7; }
-.product-img-wrap { border-radius:var(--radius);overflow:hidden;background:#f8f8f6;aspect-ratio:16/16; }
+.product-img-wrap { border-radius:18px;overflow:hidden;background:#f8fafc;aspect-ratio:16/16; border:1px solid var(--border); }
 .product-img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s; }
 .product-card:hover .product-img { transform:scale(1.04); }
-.product-icon { font-size:40px;text-align:center;background:#f8f8f6;border-radius:var(--radius);padding:1rem; }
+.product-icon { font-size:40px;text-align:center;background:linear-gradient(180deg,#f8fafc,#eef4ff);border-radius:18px;padding:1rem;border:1px solid var(--border); }
 .product-body { flex:1; }
-.product-name { font-weight:500;font-size:14.5px;line-height:1.4;margin-bottom:5px; }
+.product-name { font-weight:700;font-size:14.8px;line-height:1.4;margin-bottom:5px;letter-spacing:-0.01em; }
 .product-desc { font-size:12.5px;color:var(--text-muted);line-height:1.6; }
-.product-footer { display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:0.5px solid var(--border); }
-.product-price { font-weight:500;color:#0d5fa8;font-size:16px; }
+.product-footer { display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border); }
+.product-price { font-weight:700;color:#0f4fd6;font-size:16px; }
 .stock-badge { font-size:12px;display:flex;align-items:center;gap:4px; }
 .stock-dot { width:6px;height:6px;border-radius:50%;display:inline-block;animation:pulse-dot 2s ease-in-out infinite; }
+.variant-badges { display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px; }
+.variant-pill { font-size:11px;padding:4px 8px;border-radius:999px;background:#f4f7fb;color:#345; border:0.5px solid var(--border); }
+.variant-pill.muted { color:var(--text-muted); }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .empty-state { text-align:center;padding:3rem;color:var(--text-muted); }
 .store-footer { text-align:center;padding:2rem 0 0;font-size:13px;color:var(--text-muted); }
 .wa-float {
   position:fixed;bottom:24px;right:24px;z-index:500;
   display:flex;align-items:center;gap:8px;
-  background:#25D366;color:#fff;
+  background:linear-gradient(135deg,#25D366,#16a34a);color:#fff;
   padding:12px 18px;border-radius:999px;
   text-decoration:none;font-size:14px;font-weight:500;
-  box-shadow:0 4px 16px rgba(37,211,102,0.35);
+  box-shadow:0 14px 30px rgba(37,211,102,0.28);
   transition:transform 0.2s,box-shadow 0.2s;
 }
 .wa-float:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,211,102,0.45); }
+@media (max-width: 800px) {
+  .hero-panel { grid-template-columns: 1fr; }
+  .nav-tag { display:none; }
+}
 </style>

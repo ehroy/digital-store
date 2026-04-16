@@ -25,7 +25,7 @@ type ActionResult struct {
 	Provider string `json:"provider"`
 	Label    string `json:"label"`
 	Enabled  bool   `json:"enabled"`
-	Status   string `json:"status"`  // ok | skipped | failed
+	Status   string `json:"status"` // ok | skipped | failed
 	Output   string `json:"output"`
 }
 
@@ -99,7 +99,9 @@ func Execute(scriptJSON string, order *models.Order, emailFn func(to, subj, body
 
 		case "slack":
 			wh := action.WebhookURL
-			if wh == "" { wh = action.URL }
+			if wh == "" {
+				wh = action.URL
+			}
 			msg := render(action.Message, ctx)
 			payload, _ := json.Marshal(map[string]string{"text": msg})
 			if execErr = postJSON(wh, payload, nil); execErr != nil {
@@ -110,7 +112,9 @@ func Execute(scriptJSON string, order *models.Order, emailFn func(to, subj, body
 
 		case "discord":
 			wh := action.WebhookURL
-			if wh == "" { wh = action.URL }
+			if wh == "" {
+				wh = action.URL
+			}
 			msg := render(action.Message, ctx)
 			payload, _ := json.Marshal(map[string]string{"content": msg})
 			if execErr = postJSON(wh, payload, nil); execErr != nil {
@@ -119,9 +123,11 @@ func Execute(scriptJSON string, order *models.Order, emailFn func(to, subj, body
 				out = fmt.Sprintf("%s pesan Discord terkirim", prefix)
 			}
 
-		case "webhook":
+		case "webhook", "curl":
 			method := action.Method
-			if method == "" { method = "POST" }
+			if method == "" {
+				method = "POST"
+			}
 			url := render(action.URL, ctx)
 			payload, _ := json.Marshal(map[string]interface{}{
 				"invoice_no":   ctx.InvoiceNo,
@@ -195,12 +201,18 @@ func Execute(scriptJSON string, order *models.Order, emailFn func(to, subj, body
 
 func postJSON(url string, payload []byte, headers map[string]string) error {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Content-Type", "application/json")
-	for k, v := range headers { req.Header.Set(k, v) }
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	resp.Body.Close()
 	return nil
 }

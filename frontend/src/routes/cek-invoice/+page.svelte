@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR, fmtDateTime, STATUS_LABEL, PAY_LABEL } from '$lib/utils.js';
+  import { toDataURL } from 'qrcode';
 
   let invoiceNo = '';
   let email = '';
@@ -10,6 +11,12 @@
   let loading = false;
   let error = '';
   let requireEmail = false;
+  let qrisDataUrl = '';
+
+  $: statusKey = result?.status === 'pending' ? 'waiting_payment' : result?.status;
+  $: paymentLink = result?.gateway_redirect_url || result?.gateway_pay_url || '';
+  $: qrisString = result?.gateway_qris_string || result?.gateway_pay_code || '';
+  $: qrisImage = result?.gateway_qris_image_url || '';
 
   onMount(() => {
     const no = $page.url.searchParams.get('no');
@@ -29,6 +36,7 @@
     loading = true; error = ''; result = null; requireEmail = false;
     try {
       result = await api.getInvoice(q, em);
+      await syncQrisPreview(result);
     } catch(e) {
       if (e.message.includes('email')) {
         error = 'Email tidak sesuai dengan data pesanan ini. Periksa email yang kamu gunakan saat pembelian.';
@@ -42,6 +50,20 @@
 
   function isURL(s) { return s?.startsWith('http'); }
 
+  async function syncQrisPreview(payload) {
+    const code = payload?.gateway_qris_string || payload?.gateway_pay_code || '';
+    const image = payload?.gateway_qris_image_url || '';
+    if (!code || image || typeof window === 'undefined') {
+      qrisDataUrl = '';
+      return;
+    }
+    try {
+      qrisDataUrl = await toDataURL(code, { margin: 1, scale: 6 });
+    } catch {
+      qrisDataUrl = '';
+    }
+  }
+
   const SC = {
     paid:            { icon:'✅', color:'#2f5e0f', bg:'#EAF3DE' },
     pending:         { icon:'⏳', color:'#854F0B', bg:'#FAEEDA' },
@@ -51,7 +73,7 @@
     cancelled:       { icon:'✗',  color:'#8c2626', bg:'#FCEBEB' },
   };
   const SC_LABEL = {
-    paid:'Lunas', pending:'Menunggu Pembayaran', script_executed:'Sedang Diproses',
+    paid:'Lunas', waiting_payment:'Menunggu Pembayaran', verifying:'Pembayaran Diverifikasi', script_executed:'Sedang Diproses',
     expired:'Kadaluarsa', failed:'Gagal', cancelled:'Dibatalkan'
   };
 </script>
@@ -109,28 +131,42 @@
   </div>
 
   {#if result}
-    {@const sc = SC[result.status] || SC.pending}
+    {@const sc = SC[statusKey] || SC.waiting_payment}
 
     <!-- Status banner -->
     <div style="background:{sc.bg};border-radius:var(--radius-lg);padding:1.2rem 1.5rem;margin-bottom:14px;display:flex;align-items:center;gap:14px">
       <span style="font-size:34px">{sc.icon}</span>
       <div>
-        <div style="font-weight:500;font-size:16px;color:{sc.color}">{SC_LABEL[result.status] || result.status}</div>
-        {#if result.status === 'pending' && result.expired_at}
+        <div style="font-weight:500;font-size:16px;color:{sc.color}">{SC_LABEL[statusKey] || statusKey}</div>
+        {#if statusKey === 'waiting_payment' && result.expired_at}
           <div style="font-size:12.5px;color:{sc.color};opacity:0.8;margin-top:2px">
             Batas bayar: {fmtDateTime(result.expired_at)}
           </div>
-        {:else if result.status === 'paid'}
+        {:else if statusKey === 'paid'}
           <div style="font-size:12.5px;color:{sc.color};opacity:0.8;margin-top:2px">Produk sudah dikirim ke email Anda</div>
         {/if}
       </div>
-      {#if result.status === 'pending' && result.gateway_pay_url}
-        <a href={result.gateway_pay_url} target="_blank" rel="noopener"
+      {#if paymentLink}
+        <a href={paymentLink} target="_blank" rel="noopener"
           class="btn btn-primary" style="margin-left:auto;white-space:nowrap;font-size:13px">
           💳 Bayar Sekarang
         </a>
       {/if}
     </div>
+
+    {#if statusKey !== 'paid'}
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-weight:500;font-size:14px;margin-bottom:10px">QRIS Pembayaran</div>
+        {#if qrisImage || qrisDataUrl}
+          <img src={qrisImage || qrisDataUrl} alt="QRIS" style="width:100%;max-width:280px;margin:0 auto 12px;display:block;border-radius:12px;border:0.5px solid var(--border);background:#fff;padding:8px" />
+        {/if}
+        {#if qrisString}
+          <code style="display:block;background:#f8f8f6;border:0.5px solid var(--border);padding:12px;border-radius:8px;font-size:12px;word-break:break-all;user-select:all">{qrisString}</code>
+        {:else if paymentLink}
+          <div style="background:#E6F1FB;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#185FA5;margin-top:0">QRIS belum muncul dari gateway. Gunakan link pembayaran di atas.</div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Detail order -->
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
@@ -149,8 +185,8 @@
           ['Pembeli', result.buyer_name],
           ['Jumlah', `${result.qty} pcs`],
           ['Metode Bayar', PAY_LABEL[result.pay_method] || result.pay_method],
-          ...(result.gateway_provider ? [['Gateway', result.gateway_provider.toUpperCase()]] : []),
-        ] as [l, v], i}
+        ...(result.gateway_provider ? [['Gateway', result.gateway_provider.toUpperCase()]] : []),
+      ] as [l, v], i}
           <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
             <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:40%">{l}</td>
             <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
@@ -193,7 +229,7 @@
           {/each}
         </div>
       </div>
-    {:else if result.status === 'pending'}
+    {:else if statusKey === 'waiting_payment' || statusKey === 'verifying'}
       <div class="card" style="text-align:center;padding:2rem;color:var(--text-muted)">
         <div style="font-size:28px;margin-bottom:8px">💳</div>
         <div style="font-weight:500;font-size:14px">Menunggu Konfirmasi Pembayaran</div>
@@ -203,6 +239,12 @@
 
     <div style="margin-top:14px;text-align:center">
       <button class="btn btn-sm" on:click={()=>{result=null;error=''}}>← Cek Invoice Lain</button>
+    </div>
+
+    <div style="margin-top:10px;text-align:center">
+      <a href="/komplain?invoice={result.invoice_no}" style="font-size:12.5px;color:#0d5fa8;font-weight:500">
+        Komplain ke WhatsApp Admin →
+      </a>
     </div>
   {/if}
 </div>

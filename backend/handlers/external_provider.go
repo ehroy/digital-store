@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,8 @@ func GetExternalProviders(c *gin.Context) {
 func CreateExternalProvider(c *gin.Context) {
 	var p models.ExternalProvider
 	if err := c.ShouldBindJSON(&p); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}); return
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	p.ID = 0
 	database.DB.Create(&p)
@@ -41,7 +43,8 @@ func CreateExternalProvider(c *gin.Context) {
 func UpdateExternalProvider(c *gin.Context) {
 	var p models.ExternalProvider
 	if err := database.DB.First(&p, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"})
+		return
 	}
 	var body map[string]interface{}
 	c.ShouldBindJSON(&body)
@@ -49,9 +52,15 @@ func UpdateExternalProvider(c *gin.Context) {
 	if apiKey, ok := body["api_key"].(string); ok && len(apiKey) > 0 && !containsAsterisks(apiKey) {
 		p.APIKey = apiKey
 	}
-	if name, ok := body["name"].(string); ok { p.Name = name }
-	if active, ok := body["active"].(bool); ok { p.Active = active }
-	if ec, ok := body["extra_config"].(string); ok { p.ExtraConfig = ec }
+	if name, ok := body["name"].(string); ok {
+		p.Name = name
+	}
+	if active, ok := body["active"].(bool); ok {
+		p.Active = active
+	}
+	if ec, ok := body["extra_config"].(string); ok {
+		p.ExtraConfig = ec
+	}
 	database.DB.Save(&p)
 	c.JSON(http.StatusOK, p)
 }
@@ -68,13 +77,15 @@ func DeleteExternalProvider(c *gin.Context) {
 func SyncProviderProducts(c *gin.Context) {
 	var provider models.ExternalProvider
 	if err := database.DB.First(&provider, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"})
+		return
 	}
 
 	ks := gateway.NewKoalaStore(provider.APIKey)
 	products, err := ks.GetAllProducts()
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "gagal sync: " + err.Error()}); return
+		c.JSON(http.StatusBadGateway, gin.H{"error": "gagal sync: " + err.Error()})
+		return
 	}
 
 	// Flatten: satu baris per variant
@@ -85,19 +96,24 @@ func SyncProviderProducts(c *gin.Context) {
 			err := database.DB.Where("provider_id = ? AND code = ?", provider.ID, v.CodeVariant).First(&existing).Error
 
 			stock := "available"
-			if v.AvailableStock == 0 { stock = "out_of_stock" }
-			if v.IsManualProcess { stock = "manual" }
+			if v.AvailableStock == 0 {
+				stock = "out_of_stock"
+			}
+			if v.IsManualProcess {
+				stock = "manual"
+			}
 
 			pp := models.ProviderProduct{
-				ProviderID:    provider.ID,
-				ProviderName:  provider.Name,
-				Code:          v.CodeVariant,
-				Name:          p.Name + " — " + v.Name,
-				Category:      p.Category,
-				ProviderPrice: v.Price,
-				Stock:         stock,
-				Description:   p.Description,
-				UpdatedAt:     time.Now(),
+				ProviderID:     provider.ID,
+				ProviderName:   provider.Name,
+				Code:           v.CodeVariant,
+				Name:           normalizeKoalaStoreProductName(p.Name, v.Name),
+				Category:       p.Category,
+				ProviderPrice:  v.Price,
+				Stock:          stock,
+				AvailableStock: v.AvailableStock,
+				Description:    p.Description,
+				UpdatedAt:      time.Now(),
 			}
 
 			if err != nil {
@@ -107,10 +123,11 @@ func SyncProviderProducts(c *gin.Context) {
 			} else {
 				// Update harga & stok
 				database.DB.Model(&existing).Updates(map[string]interface{}{
-					"provider_price": v.Price,
-					"stock":          stock,
-					"name":           pp.Name,
-					"updated_at":     time.Now(),
+					"provider_price":  v.Price,
+					"stock":           stock,
+					"available_stock": v.AvailableStock,
+					"name":            pp.Name,
+					"updated_at":      time.Now(),
 				})
 				updated++
 			}
@@ -133,19 +150,29 @@ func GetProviderProducts(c *gin.Context) {
 	var items []models.ProviderProduct
 	query := database.DB.Where("provider_id = ?", c.Param("id")).Order("category, name")
 
-	if cat := c.Query("category"); cat != "" { query = query.Where("category = ?", cat) }
-	if s := c.Query("search"); s != "" { query = query.Where("name LIKE ?", "%"+s+"%") }
-	if imported := c.Query("imported"); imported == "true" { query = query.Where("imported = ?", true) }
-	if imported := c.Query("imported"); imported == "false" { query = query.Where("imported = ?", false) }
+	if cat := c.Query("category"); cat != "" {
+		query = query.Where("category = ?", cat)
+	}
+	if s := c.Query("search"); s != "" {
+		query = query.Where("name LIKE ?", "%"+s+"%")
+	}
+	if imported := c.Query("imported"); imported == "true" {
+		query = query.Where("imported = ?", true)
+	}
+	if imported := c.Query("imported"); imported == "false" {
+		query = query.Where("imported = ?", false)
+	}
 
 	// Pagination
 	page, pageSize := 1, 30
 	fmt.Sscanf(c.Query("page"), "%d", &page)
-	if page < 1 { page = 1 }
+	if page < 1 {
+		page = 1
+	}
 
 	var total int64
 	query.Model(&models.ProviderProduct{}).Count(&total)
-	query.Offset((page-1)*pageSize).Limit(pageSize).Find(&items)
+	query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&items)
 
 	c.JSON(http.StatusOK, gin.H{
 		"items":       items,
@@ -160,12 +187,14 @@ func GetProviderProducts(c *gin.Context) {
 func GetProviderBalance(c *gin.Context) {
 	var provider models.ExternalProvider
 	if err := database.DB.First(&provider, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"})
+		return
 	}
 	ks := gateway.NewKoalaStore(provider.APIKey)
 	bal, err := ks.GetBalance()
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()}); return
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
 	}
 	c.JSON(http.StatusOK, bal.Data)
 }
@@ -176,18 +205,22 @@ func GetProviderBalance(c *gin.Context) {
 func ImportProviderProducts(c *gin.Context) {
 	var body struct {
 		Codes       []string `json:"codes"        binding:"required,min=1"`
-		MarkupType  string   `json:"markup_type"`  // "percent" | "fixed"
+		MarkupType  string   `json:"markup_type"` // "percent" | "fixed"
 		MarkupValue float64  `json:"markup_value"`
 		AutoSync    bool     `json:"auto_sync"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}); return
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
-	if body.MarkupType == "" { body.MarkupType = "percent" }
+	if body.MarkupType == "" {
+		body.MarkupType = "percent"
+	}
 
 	var provider models.ExternalProvider
 	if err := database.DB.First(&provider, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"})
+		return
 	}
 
 	var imported []models.Product
@@ -241,7 +274,7 @@ func SyncProviderPrices(c *gin.Context) {
 	for _, p := range products {
 		// Cari harga terbaru dari cache ProviderProduct
 		var pp models.ProviderProduct
-		if err := database.DB.Where("code = ?", p.ProviderCode).First(&pp).Error; err != nil {
+		if err := database.DB.Where("provider_name = ? AND code = ?", p.ProviderName, p.ProviderCode).First(&pp).Error; err != nil {
 			continue
 		}
 		newPrice := calcSellPrice(pp.ProviderPrice, p.MarkupType, p.MarkupValue)
@@ -278,13 +311,13 @@ func OrderFromKoalaStore(order *models.Order, product *models.Product) ([]string
 	if err != nil {
 		// Simpan log kegagalan
 		database.DB.Create(&models.ProviderOrder{
-			OrderID:     order.ID,
-			InvoiceNo:   order.InvoiceNo,
-			ProviderID:  provider.ID,
+			OrderID:      order.ID,
+			InvoiceNo:    order.InvoiceNo,
+			ProviderID:   provider.ID,
 			ProviderCode: product.ProviderCode,
-			Status:      "failed",
-			Message:     err.Error(),
-			PricePaid:   product.ProviderPrice * int64(order.Qty),
+			Status:       "failed",
+			Message:      err.Error(),
+			PricePaid:    product.ProviderPrice * int64(order.Qty),
 		})
 		return nil, err
 	}
@@ -324,7 +357,9 @@ func OrderFromKoalaStore(order *models.Order, product *models.Product) ([]string
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func calcSellPrice(basePrice int64, markupType string, markupValue float64) int64 {
-	if markupValue <= 0 { return basePrice }
+	if markupValue <= 0 {
+		return basePrice
+	}
 	switch markupType {
 	case "percent":
 		return basePrice + int64(math.Round(float64(basePrice)*markupValue/100))
@@ -335,8 +370,24 @@ func calcSellPrice(basePrice int64, markupType string, markupValue float64) int6
 }
 
 func containsAsterisks(s string) bool {
-	for _, c := range s { if c == '*' { return true } }
+	for _, c := range s {
+		if c == '*' {
+			return true
+		}
+	}
 	return false
+}
+
+func normalizeKoalaStoreProductName(productName, variantName string) string {
+	productName = strings.TrimSpace(productName)
+	variantName = strings.TrimSpace(variantName)
+	if productName == "" {
+		return variantName
+	}
+	if variantName == "" {
+		return productName
+	}
+	return productName + " — " + variantName
 }
 
 // ── Auto Stock Sync Job ───────────────────────────────────────────────────────
@@ -376,17 +427,24 @@ func autoSyncAllProviders() {
 		for _, prod := range products {
 			for _, v := range prod.Variants {
 				stock := "available"
-				if v.AvailableStock == 0 { stock = "out_of_stock" }
-				if v.IsManualProcess { stock = "manual" }
+				if v.AvailableStock == 0 {
+					stock = "out_of_stock"
+				}
+				if v.IsManualProcess {
+					stock = "manual"
+				}
 
 				res := database.DB.Model(&models.ProviderProduct{}).
 					Where("provider_id = ? AND code = ?", p.ID, v.CodeVariant).
 					Updates(map[string]interface{}{
-						"provider_price": v.Price,
-						"stock":          stock,
-						"updated_at":     time.Now(),
+						"provider_price":  v.Price,
+						"stock":           stock,
+						"available_stock": v.AvailableStock,
+						"updated_at":      time.Now(),
 					})
-				if res.RowsAffected > 0 { updated++ }
+				if res.RowsAffected > 0 {
+					updated++
+				}
 			}
 		}
 
@@ -396,7 +454,9 @@ func autoSyncAllProviders() {
 			Find(&autoSyncProducts)
 		for _, prod := range autoSyncProducts {
 			var pp models.ProviderProduct
-			if err := database.DB.Where("code = ?", prod.ProviderCode).First(&pp).Error; err != nil { continue }
+			if err := database.DB.Where("provider_name = ? AND code = ?", prod.ProviderName, prod.ProviderCode).First(&pp).Error; err != nil {
+				continue
+			}
 			newPrice := calcSellPrice(pp.ProviderPrice, prod.MarkupType, prod.MarkupValue)
 			if newPrice != prod.Price {
 				database.DB.Model(&prod).Updates(map[string]interface{}{

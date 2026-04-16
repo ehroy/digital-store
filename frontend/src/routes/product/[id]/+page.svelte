@@ -27,6 +27,9 @@
   });
 
   $: outOfStock = product?.type === 'stock' && product?.available_stock === 0;
+  $: hasVariants = product?.type === 'provider' && Array.isArray(product?.variants) && product.variants.length > 0;
+  $: providerOutOfStock = hasVariants && product.variants.every(v => v.stock_status === 'out_of_stock');
+  $: totalVariantStock = hasVariants ? product.variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0) : 0;
 </script>
 
 <svelte:head>
@@ -107,20 +110,60 @@
             {/if}
           </div>
         {:else}
-          <div style="font-size:12.5px;color:#2f5e0f;font-weight:500;margin-bottom:14px">✓ Selalu tersedia</div>
+          <div style="font-size:12.5px;color:#2f5e0f;font-weight:500;margin-bottom:14px">
+            {#if hasVariants}
+              ✓ Stok asli {totalVariantStock}
+            {:else}
+              ✓ Selalu tersedia
+            {/if}
+          </div>
         {/if}
 
         <!-- Harga -->
         <div style="font-size:30px;font-weight:500;color:#0d5fa8;margin-bottom:20px;letter-spacing:-0.5px">
-          {IDR(product.price)}
+          {#if hasVariants}
+            Mulai {IDR(product.price)}
+          {:else}
+            {IDR(product.price)}
+          {/if}
         </div>
+
+        {#if hasVariants}
+          <div class="variant-preview">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Pilihan varian tersedia</div>
+            {#each product.variants as variant}
+              <div class="variant-row">
+                <div>
+                  <div style="font-weight:500">{variant.variant_name || 'Varian'}</div>
+                  <div style="font-size:11.5px;color:var(--text-muted)">
+                    {#if variant.duration_label}{variant.duration_label} {/if}
+                    {#if variant.account_type}{variant.account_type} {/if}
+                    {#if variant.region}{variant.region} {/if}
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
+                  <div style="font-size:11px;color:var(--text-muted)">
+                    {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok asli ${variant.available_stock}`}
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        {#if hasVariants}
+          <div style="font-size:12px;color:var(--text-muted);margin:8px 0 18px">
+            Klik beli untuk memilih varian yang ingin diorder.
+          </div>
+        {/if}
 
         <!-- Tombol beli -->
         <button class="btn btn-primary"
           style="width:100%;padding:13px;font-size:15px;border-radius:var(--radius-lg);margin-bottom:10px"
-          disabled={outOfStock || !product.active}
+          disabled={outOfStock || providerOutOfStock || !product.active}
           on:click={() => buyProduct = product}>
-          {outOfStock ? 'Stok Habis' : !product.active ? 'Tidak Tersedia' : 'Beli Sekarang'}
+          {outOfStock || providerOutOfStock ? 'Stok Habis' : !product.active ? 'Tidak Tersedia' : 'Beli Sekarang'}
         </button>
         <a href="/" class="btn" style="width:100%;padding:10px;font-size:14px;text-align:center;display:block">
           ← Lihat Produk Lain
@@ -132,7 +175,7 @@
             <div class="dinfo-row">⚡ <span>Pengiriman instan setelah pembayaran dikonfirmasi</span></div>
             <div class="dinfo-row">📧 <span>Dikirim via email beserta invoice</span></div>
           {:else}
-            <div class="dinfo-row">👷 <span>Tim kami menghubungi dalam 1×24 jam</span></div>
+            <div class="dinfo-row">👷 <span>Varian dipilih saat checkout sesuai stok dan harga aktif</span></div>
             <div class="dinfo-row">📧 <span>Konfirmasi order dikirim via email</span></div>
           {/if}
         </div>
@@ -198,6 +241,22 @@
 }
 
 .product-info-col {}
+
+.variant-preview {
+  border: 0.5px solid var(--border);
+  background: #f8f8f6;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.variant-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 0.5px solid var(--border);
+}
+.variant-row:first-of-type { border-top: 0; padding-top: 0; }
 
 .delivery-info {
   margin-top: 16px;

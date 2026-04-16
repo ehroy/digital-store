@@ -95,11 +95,22 @@
           </div>
         </div>
 
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+            <input type="checkbox" bind:checked={cfg.sayabayar_auto_qris}/>
+            Otomatis pilih QRIS
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+            <input type="checkbox" bind:checked={cfg.sayabayar_auto_confirm}/>
+            Otomatis confirm barcode
+          </label>
+        </div>
+
         <div style="max-width:280px">
           <label class="field-label">Batas Waktu Pembayaran (jam)</label>
           <input class="input" type="number" min="1" max="168" bind:value={cfg.payment_expire_hours}/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
-            Order yang belum dibayar setelah {cfg.payment_expire_hours} jam otomatis dibatalkan.
+            Gateway QRIS sekarang expired otomatis dalam 30 menit.
           </div>
         </div>
 
@@ -205,6 +216,9 @@
         <div><label class="field-label">Alamat Wallet</label>
           <input class="input mono" bind:value={cfg.crypto_addr} placeholder="bc1q…"/></div>
       {/if}
+      <div style="font-size:11px;color:var(--text-muted)">
+        Gateway DompetX dan SayaBayar mengikuti expired 30 menit untuk QRIS.
+      </div>
     </div>
   </div>
 
@@ -264,5 +278,20 @@ input:checked + .slider:before { transform:translateX(18px); }
   background:#dceeff;color:#0d5fa8;
   padding:5px 10px;border-radius:5px;margin-top:4px;
   word-break:break-all;
+}
+
+@media (max-width: 900px) {
+  .status-bar { flex-wrap:wrap; gap:6px; }
+  .gw-header { flex-direction:column; align-items:flex-start; }
+  .gw-card { padding:1rem; }
+  .webhook-box { padding:10px 12px; }
+  .form-row-2, .form-row-3 { grid-template-columns:1fr; }
+}
+
+@media (max-width: 640px) {
+  .status-bar { font-size:12px; }
+  .gw-card { border-radius:16px; }
+  .gw-card .form-row-2, .gw-card .form-row-3 { gap:10px; }
+  .webhook-url { font-size:11px; }
 }
 </style>

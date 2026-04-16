@@ -25,6 +25,7 @@ func Init() {
 		&models.ProductStock{},
 		&models.Order{},
 		&models.PaymentConfig{},
+		&models.ContactConfig{},
 		&models.ScriptLog{},
 		&models.StockProvider{},
 		&models.PullLog{},
@@ -51,7 +52,22 @@ func seed() {
 
 	var cc models.ContactConfig
 	DB.FirstOrCreate(&cc, models.ContactConfig{ID: 1})
-	if cc.BusinessName == "" { cc.BusinessName = "DigiStore"; DB.Save(&cc) }
+	if cc.BusinessName == "" {
+		cc.BusinessName = "DigiStore"
+	}
+	if cc.WhatsApp == "" {
+		cc.WhatsApp = "6281234567890"
+	}
+	if cc.WhatsAppLabel == "" {
+		cc.WhatsAppLabel = "Hubungi CS"
+	}
+	if cc.ComplaintTemplate == "" {
+		cc.ComplaintTemplate = "Halo admin, saya ingin komplain order berikut:\n\nInvoice: {invoice_no}\nProduk: {product_name}\nNama: {buyer_name}\nEmail: {buyer_email}\nNomor HP: {phone}\nStatus: {status}\n\nMasalah:\n{issue}"
+	}
+	if cc.OperationalHours == "" {
+		cc.OperationalHours = "Senin - Sabtu, 08.00 - 21.00 WIB"
+	}
+	DB.Save(&cc)
 
 	DB.Model(&models.Product{}).Count(&count)
 	if count == 0 {

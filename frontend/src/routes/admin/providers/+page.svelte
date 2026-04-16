@@ -370,4 +370,18 @@
   transition: border-color 0.12s;
 }
 .type-card.selected { border: 1.5px solid #0d5fa8; background: #fafeff; }
+
+@media (max-width: 900px) {
+  .tab-btn { padding: 8px 12px; }
+  .type-card { padding: 10px 11px; }
+  .type-card > div:first-child { font-size: 12.5px; }
+}
+
+@media (max-width: 640px) {
+  .type-card { width: 100%; }
+  .type-card + .type-card { margin-top: 4px; }
+  .card { padding: 1rem; }
+  .tab-btn { font-size: 12.5px; }
+  .provider-card-actions { flex-direction: column; }
+}
 </style>

@@ -50,6 +50,7 @@ export const api = {
     return req('GET', `/invoice/${no}?${param}`);
   },
   generateInvoiceToken: (no, email) => req('POST', `/invoice/${no}/token`, { email }),
+  checkPayment: (no) => req('POST', `/orders/${no}/check-payment`),
   getPaymentMethods: () => req('GET', '/payment/methods'),
   getContact: () => req('GET', '/contact'),
 

@@ -23,7 +23,8 @@ func CreateOrder(c *gin.Context) {
 		PayMethod  string `json:"pay_method"  binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}); return
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// ── Validasi metode pembayaran di backend ────────────────────────────────
@@ -36,10 +37,12 @@ func CreateOrder(c *gin.Context) {
 
 	var product models.Product
 	if err := database.DB.First(&product, req.ProductID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "produk tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "produk tidak ditemukan"})
+		return
 	}
 	if !product.Active {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "produk tidak tersedia"}); return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "produk tidak tersedia"})
+		return
 	}
 	if product.Type == "stock" {
 		var avail int64
@@ -48,7 +51,18 @@ func CreateOrder(c *gin.Context) {
 		if int(avail) < req.Qty {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("stok tidak mencukupi: tersedia %d, diminta %d", avail, req.Qty),
-			}); return
+			})
+			return
+		}
+	} else if product.Type == "provider" {
+		var pp models.ProviderProduct
+		if err := database.DB.Where("provider_name = ? AND code = ?", product.ProviderName, product.ProviderCode).First(&pp).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "varian produk tidak ditemukan"})
+			return
+		}
+		if pp.Stock == "out_of_stock" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "varian ini sedang habis"})
+			return
 		}
 	}
 
@@ -66,80 +80,47 @@ func CreateOrder(c *gin.Context) {
 		Status:      "pending",
 	}
 	if err := database.DB.Create(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal membuat order"}); return
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal membuat order"})
+		return
 	}
 
 	gwResult := createGatewayCharge(&order, config.App.FrontendURL)
 	if gwResult.ChargeID != "" {
 		database.DB.Model(&order).Updates(map[string]interface{}{
-			"gateway_charge_id":  gwResult.ChargeID,
-			"gateway_invoice_no": gwResult.GatewayInvNo,
-			"gateway_provider":   gwResult.Provider,
-			"gateway_pay_url":    gwResult.PayURL,
-			"gateway_pay_code":   gwResult.PayCode,
-			"expired_at":         gwResult.ExpiredAt,
+			"gateway_charge_id":      gwResult.ChargeID,
+			"gateway_invoice_no":     gwResult.GatewayInvNo,
+			"gateway_provider":       gwResult.Provider,
+			"gateway_pay_url":        gwResult.PayURL,
+			"gateway_redirect_url":   gwResult.RedirectURL,
+			"gateway_pay_code":       gwResult.PayCode,
+			"gateway_qris_string":    gwResult.QRISString,
+			"gateway_qris_image_url": gwResult.QRISImageURL,
+			"expired_at":             gwResult.ExpiredAt,
 		})
-		order.GatewayChargeID  = gwResult.ChargeID
+		order.GatewayChargeID = gwResult.ChargeID
 		order.GatewayInvoiceNo = gwResult.GatewayInvNo
-		order.GatewayProvider  = gwResult.Provider
-		order.GatewayPayURL    = gwResult.PayURL
-		order.GatewayPayCode   = gwResult.PayCode
-		order.ExpiredAt        = gwResult.ExpiredAt
+		order.GatewayProvider = gwResult.Provider
+		order.GatewayPayURL = gwResult.PayURL
+		order.GatewayRedirectURL = gwResult.RedirectURL
+		order.GatewayPayCode = gwResult.PayCode
+		order.GatewayQrisString = gwResult.QRISString
+		order.GatewayQrisImageURL = gwResult.QRISImageURL
+		order.ExpiredAt = gwResult.ExpiredAt
 		go email.SendPendingInvoice(&order, gwResult.PayURL, gwResult.PayCode)
 	} else {
-		// Produk tipe provider: cek stok cache, lalu order ke KoalaStore
-		if product.Type == "provider" {
-			// Cek stok dari cache ProviderProduct
-			var pp models.ProviderProduct
-			if dbErr := database.DB.Where("code = ?", product.ProviderCode).First(&pp).Error; dbErr == nil {
-				if pp.Stock == "out_of_stock" {
-					database.DB.Delete(&order)
-					c.JSON(http.StatusBadRequest, gin.H{"error": "stok habis di provider, coba beberapa saat lagi"})
-					return
-				}
-			}
-			delivered, err := OrderFromKoalaStore(&order, &product)
-			if err != nil {
-				database.DB.Delete(&order)
-				c.JSON(http.StatusBadGateway, gin.H{"error": "gagal order ke provider: " + err.Error()})
-				return
-			}
-			deliveredJSON, _ := json.Marshal(delivered)
-			database.DB.Model(&order).Updates(map[string]interface{}{
-				"delivered_items": string(deliveredJSON), "status": "paid",
-			})
-			order.DeliveredItems = string(deliveredJSON)
-			order.Status = "paid"
-			go email.SendInvoiceWithItems(&order, delivered)
-		} else
-
-		// Mode manual
-		if product.Type == "stock" {
-			claimed, err := ClaimStockItems(product.ID, req.Qty, order.InvoiceNo)
-			if err != nil {
-				database.DB.Delete(&order)
-				c.JSON(http.StatusConflict, gin.H{"error": err.Error()}); return
-			}
-			itemData := make([]string, len(claimed))
-			for i, it := range claimed { itemData[i] = it.Data }
-			deliveredJSON, _ := json.Marshal(itemData)
-			database.DB.Model(&order).Updates(map[string]interface{}{
-				"delivered_items": string(deliveredJSON), "status": "paid",
-			})
-			order.DeliveredItems = string(deliveredJSON)
-			order.Status = "paid"
-			go email.SendInvoiceWithItems(&order, itemData)
-		} else {
-			go func(o models.Order) { deliverOrder(&o) }(order)
-			go email.SendInvoiceService(&order)
-		}
+		database.DB.Delete(&order)
+		c.JSON(http.StatusBadGateway, gin.H{"error": "gagal membuat QRIS, silakan coba lagi"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"order":          order,
 		"invoice_no":     order.InvoiceNo,
-		"pay_url":        gwResult.PayURL,
+		"pay_url":        firstNonEmpty(gwResult.PayURL, gwResult.RedirectURL),
+		"redirect_url":   gwResult.RedirectURL,
 		"pay_code":       gwResult.PayCode,
+		"qris_string":    gwResult.QRISString,
+		"qris_image_url": gwResult.QRISImageURL,
 		"expired_at":     gwResult.ExpiredAt,
 		"gateway_active": gwResult.ChargeID != "",
 		"gateway":        gwResult.Provider,
@@ -149,8 +130,9 @@ func CreateOrder(c *gin.Context) {
 
 // GET /api/invoice/:no — cek status invoice
 // Verifikasi: wajib salah satu dari:
-//   ?email=xxx  → verifikasi email langsung
-//   ?token=xxx  → token HMAC yang digenerate setelah checkout (tanpa email ulang)
+//
+//	?email=xxx  → verifikasi email langsung
+//	?token=xxx  → token HMAC yang digenerate setelah checkout (tanpa email ulang)
 func GetInvoicePublic(c *gin.Context) {
 	no := c.Param("no")
 	emailParam := strings.TrimSpace(c.Query("email"))
@@ -204,29 +186,58 @@ func GetInvoicePublic(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"invoice_no":        order.InvoiceNo,
-		"gateway_invoice_no": order.GatewayInvoiceNo,
-		"gateway_provider":  order.GatewayProvider,
-		"product_name":      order.ProductName,
-		"product_type":      order.ProductType,
-		"buyer_name":        order.BuyerName,
-		"qty":               order.Qty,
-		"total":             order.Total,
-		"pay_method":        order.PayMethod,
-		"status":            order.Status,
-		"delivered_items":   items,
-		"gateway_pay_url":   order.GatewayPayURL,
-		"gateway_pay_code":  order.GatewayPayCode,
-		"expired_at":        order.ExpiredAt,
-		"created_at":        order.CreatedAt,
-		"updated_at":        order.UpdatedAt,
+		"invoice_no":             order.InvoiceNo,
+		"gateway_invoice_no":     order.GatewayInvoiceNo,
+		"gateway_provider":       order.GatewayProvider,
+		"product_name":           order.ProductName,
+		"product_type":           order.ProductType,
+		"buyer_name":             order.BuyerName,
+		"qty":                    order.Qty,
+		"total":                  order.Total,
+		"pay_method":             order.PayMethod,
+		"status":                 order.Status,
+		"delivered_items":        items,
+		"gateway_pay_url":        order.GatewayPayURL,
+		"gateway_redirect_url":   order.GatewayRedirectURL,
+		"gateway_pay_code":       order.GatewayPayCode,
+		"gateway_qris_string":    order.GatewayQrisString,
+		"gateway_qris_image_url": order.GatewayQrisImageURL,
+		"expired_at":             order.ExpiredAt,
+		"created_at":             order.CreatedAt,
+		"updated_at":             order.UpdatedAt,
+	})
+}
+
+// POST /api/orders/:invoice/check-payment
+func CheckPayment(c *gin.Context) {
+	no := c.Param("invoice")
+	var order models.Order
+	if err := database.DB.Where("invoice_no = ? OR gateway_invoice_no = ?", no, no).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "invoice tidak ditemukan"})
+		return
+	}
+	if order.Status == "pending" || order.Status == "waiting_payment" || order.Status == "verifying" {
+		CheckAndSyncGatewayStatus(&order)
+		database.DB.Where("invoice_no = ? OR gateway_invoice_no = ?", no, no).First(&order)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"invoice_no":             order.InvoiceNo,
+		"status":                 order.Status,
+		"gateway_pay_url":        order.GatewayPayURL,
+		"gateway_redirect_url":   order.GatewayRedirectURL,
+		"gateway_pay_code":       order.GatewayPayCode,
+		"gateway_qris_string":    order.GatewayQrisString,
+		"gateway_qris_image_url": order.GatewayQrisImageURL,
+		"expired_at":             order.ExpiredAt,
 	})
 }
 
 func GetOrders(c *gin.Context) {
 	var orders []models.Order
 	query := database.DB.Order("created_at desc")
-	if s := c.Query("status"); s != "" { query = query.Where("status = ?", s) }
+	if s := c.Query("status"); s != "" {
+		query = query.Where("status = ?", s)
+	}
 	query.Find(&orders)
 	c.JSON(http.StatusOK, orders)
 }
@@ -234,10 +245,13 @@ func GetOrders(c *gin.Context) {
 func GetOrder(c *gin.Context) {
 	var o models.Order
 	if err := database.DB.First(&o, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"})
+		return
 	}
 	var items []string
-	if o.DeliveredItems != "" { json.Unmarshal([]byte(o.DeliveredItems), &items) }
+	if o.DeliveredItems != "" {
+		json.Unmarshal([]byte(o.DeliveredItems), &items)
+	}
 	c.JSON(http.StatusOK, gin.H{"order": o, "delivered_items": items})
 }
 
@@ -246,14 +260,17 @@ func UpdateOrderStatus(c *gin.Context) {
 		Status string `json:"status" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}); return
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	var o models.Order
 	if err := database.DB.First(&o, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"})
+		return
 	}
 	if body.Status == "paid" && o.Status == "pending" {
-		deliverOrder(&o); return
+		deliverOrder(&o)
+		return
 	}
 	database.DB.Model(&o).Update("status", body.Status)
 	o.Status = body.Status
@@ -263,7 +280,8 @@ func UpdateOrderStatus(c *gin.Context) {
 func ManualDeliver(c *gin.Context) {
 	var o models.Order
 	if err := database.DB.First(&o, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"}); return
+		c.JSON(http.StatusNotFound, gin.H{"error": "order tidak ditemukan"})
+		return
 	}
 	var body struct {
 		Items     []string `json:"items"`

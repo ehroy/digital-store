@@ -39,56 +39,26 @@ func GetPaymentMethods(c *gin.Context) {
 		Icon   string `json:"icon"`
 	}
 
-	var methods []Method
-
-	// Jika ada gateway aktif: hanya tampilkan "gateway" sebagai satu opsi
-	if cfg.SayaBayarEnabled && cfg.SayaBayarAPIKey != "" {
+	methods := []Method{}
+	if cfg.SayaBayarEnabled || cfg.DompetXEnabled {
 		methods = append(methods, Method{
-			ID:     "gateway",
-			Label:  "Bayar Online",
-			Detail: "Pilih metode pembayaran di halaman berikutnya (transfer, QRIS, e-Wallet, dll)",
-			Icon:   "💳",
+			ID:     "qris",
+			Label:  "QRIS",
+			Detail: "Scan kode QR untuk pembayaran instan",
+			Icon:   "📱",
 		})
-	} else if cfg.DompetXEnabled && cfg.DompetXAPIKey != "" {
-		methods = append(methods, Method{
-			ID:     "gateway",
-			Label:  "Bayar Online",
-			Detail: "Pilih metode pembayaran di halaman berikutnya",
-			Icon:   "💳",
-		})
-	} else {
-		// Mode manual — tampilkan sesuai yang dikonfigurasi
-		if cfg.BankName != "" && cfg.BankNo != "" {
-			methods = append(methods, Method{
-				ID:     "bank",
-				Label:  "Transfer Bank " + cfg.BankName,
-				Detail: cfg.BankNo + " a/n " + cfg.BankAcc,
-				Icon:   "🏦",
-			})
-		}
-		if cfg.Dana != "" {
-			methods = append(methods, Method{ID: "dana", Label: "DANA", Detail: cfg.Dana, Icon: "💚"})
-		}
-		if cfg.Gopay != "" {
-			methods = append(methods, Method{ID: "gopay", Label: "GoPay", Detail: cfg.Gopay, Icon: "💚"})
-		}
-		if cfg.Ovo != "" {
-			methods = append(methods, Method{ID: "ovo", Label: "OVO", Detail: cfg.Ovo, Icon: "💜"})
-		}
-		if cfg.QRIS {
-			methods = append(methods, Method{ID: "qris", Label: "QRIS", Detail: "Scan kode QR untuk pembayaran instan", Icon: "📱"})
-		}
-		if cfg.Crypto && cfg.CryptoAddr != "" {
-			methods = append(methods, Method{ID: "crypto", Label: "Cryptocurrency", Detail: cfg.CryptoAddr, Icon: "₿"})
-		}
 	}
 
 	c.JSON(200, gin.H{
 		"methods":        methods,
-		"gateway_active": cfg.SayaBayarEnabled || cfg.DompetXEnabled,
+		"gateway_active": len(methods) > 0,
 		"provider": func() string {
-			if cfg.SayaBayarEnabled { return "sayabayar" }
-			if cfg.DompetXEnabled { return "dompetx" }
+			if cfg.SayaBayarEnabled {
+				return "sayabayar"
+			}
+			if cfg.DompetXEnabled {
+				return "dompetx"
+			}
 			return "manual"
 		}(),
 	})

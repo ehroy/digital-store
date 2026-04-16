@@ -14,12 +14,12 @@
   });
 
   $: stats = data ? [
-    { label: 'Total Pemasukan', value: IDR(data.total_revenue), accent: '#0d5fa8' },
-    { label: 'Total Pesanan', value: data.total_orders },
-    { label: 'Pesanan Lunas', value: data.paid_orders, accent: '#2f5e0f' },
-    { label: 'Menunggu Bayar', value: data.pending_orders, accent: data.pending_orders > 0 ? '#854F0B' : undefined },
-    { label: 'Produk Aktif', value: data.active_products },
-    { label: 'Stok Hampir Habis', value: data.low_stock, accent: data.low_stock > 0 ? '#8c2626' : undefined },
+    { label: 'Total Pemasukan', value: IDR(data.total_revenue), accent: '#0f4fd6', hint: 'Akumulasi omzet' },
+    { label: 'Total Pesanan', value: data.total_orders, hint: 'Semua transaksi' },
+    { label: 'Pesanan Lunas', value: data.paid_orders, accent: '#166534', hint: 'Siap diproses' },
+    { label: 'Menunggu Bayar', value: data.pending_orders, accent: data.pending_orders > 0 ? '#b45309' : undefined, hint: 'Butuh pembayaran' },
+    { label: 'Produk Aktif', value: data.active_products, hint: 'Siap dijual' },
+    { label: 'Stok Hampir Habis', value: data.low_stock, accent: data.low_stock > 0 ? '#b42318' : undefined, hint: 'Perlu dicek' },
   ] : [];
 
   $: maxRev = data?.revenue_by_category?.length
@@ -34,14 +34,26 @@
 {:else if error}
   <div class="alert-error">{error}</div>
 {:else if data}
-  <div class="page-header"><h1 class="page-title">Dashboard</h1></div>
+  <div class="dash-hero card">
+    <div>
+      <div class="eyebrow">Admin Dashboard</div>
+      <h1 class="hero-title">Ringkasan store digital yang bersih dan cepat dibaca.</h1>
+      <p class="hero-desc">Pantau omzet, status pesanan, dan stok dari satu layar dengan tampilan minimal modern.</p>
+    </div>
+    <div class="hero-card-mini">
+      <div class="mini-label">Hari ini</div>
+      <div class="mini-value">{data.total_orders} pesanan</div>
+      <div class="mini-sub">{IDR(data.total_revenue)} total pemasukan</div>
+    </div>
+  </div>
 
   <!-- Stats grid -->
   <div class="stats-grid">
     {#each stats as s}
-      <div class="stat-card">
+      <div class="stat-card stat-card-hero">
         <div class="stat-label">{s.label}</div>
         <div class="stat-value" style="color:{s.accent || 'var(--text)'}">{s.value}</div>
+        <div class="stat-hint">{s.hint}</div>
       </div>
     {/each}
   </div>
@@ -49,7 +61,12 @@
   <!-- Revenue by category -->
   {#if data.revenue_by_category?.length}
     <div class="card" style="margin-top:16px">
-      <div style="font-weight:500;font-size:14px;margin-bottom:14px">Pendapatan per Kategori</div>
+      <div class="section-head">
+        <div>
+          <div class="section-title">Pendapatan per Kategori</div>
+          <div class="section-sub">Komposisi kategori yang paling berkontribusi.</div>
+        </div>
+      </div>
       <div class="rev-bars">
         {#each data.revenue_by_category as row}
           {@const rev = row.Revenue || row.revenue || 0}
@@ -68,8 +85,11 @@
 
   <!-- Recent orders -->
   <div class="card" style="margin-top:16px;padding:0;overflow:hidden">
-    <div style="padding:1rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">
-      Pesanan Terbaru
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="section-title">Pesanan Terbaru</div>
+        <div class="section-sub">Update transaksi terakhir di toko.</div>
+      </div>
     </div>
     <div style="overflow-x:auto">
       <table class="data-table">
@@ -99,17 +119,55 @@
 <style>
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-  gap: 11px; margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 16px;
 }
 .rev-bars { display: flex; flex-direction: column; gap: 12px; }
-.rev-row {}
+.dash-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.8fr);
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 1.35rem 1.35rem 1.25rem;
+  background:
+    radial-gradient(circle at top right, rgba(21,93,252,0.16), transparent 32%),
+    linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+.hero-title { font-size: 26px; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 8px; font-weight: 700; }
+.hero-desc { color: var(--text-muted); max-width: 58ch; }
+.hero-card-mini {
+  align-self: stretch; border-radius: 16px; padding: 1rem 1rem 0.95rem;
+  background: rgba(15,23,42,0.03); border: 1px solid var(--border);
+  display:flex; flex-direction:column; justify-content:flex-end; gap:4px;
+}
+.mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-hint); }
+.mini-value { font-size: 21px; font-weight: 700; letter-spacing: -0.03em; }
+.mini-sub { color: var(--text-muted); font-size: 13px; }
+.section-head {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-head-tight { border-bottom: 1px solid var(--border); }
+.section-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.section-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
 .rev-meta {
   display: flex; justify-content: space-between;
   font-size: 13px; margin-bottom: 5px;
 }
 .rev-track {
-  height: 6px; background: #f0f0ee; border-radius: 99px; overflow: hidden;
+  height: 7px; background: #e8edf4; border-radius: 99px; overflow: hidden;
 }
-.rev-fill { height: 100%; background: #0d5fa8; border-radius: 99px; transition: width 0.4s; }
+.rev-fill { height: 100%; background: linear-gradient(90deg, #155dfc, #60a5fa); border-radius: 99px; transition: width 0.4s; }
+.stat-card-hero { position: relative; overflow: hidden; }
+.stat-card-hero::after {
+  content: '';
+  position: absolute; inset: auto -20px -18px auto;
+  width: 74px; height: 74px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(21,93,252,0.12), transparent 70%);
+}
+.stat-hint { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
+@media (max-width: 800px) {
+  .dash-hero { grid-template-columns: 1fr; }
+}
 </style>

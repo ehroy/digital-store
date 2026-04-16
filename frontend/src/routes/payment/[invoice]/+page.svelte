@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR, fmtDateTime, PAY_LABEL } from '$lib/utils.js';
+  import { toDataURL } from 'qrcode';
 
   const invoiceNo = $page.params.invoice;
 
@@ -22,14 +23,20 @@
   let pollCount = 0;
   let lastChecked = null;
   let cred = '';
+  let qrisDataUrl = '';
 
-  $: isFinal = data && ['paid','cancelled','expired','failed'].includes(data.status);
-  $: gatewayActive = data?.gateway_pay_url || data?.gateway_pay_code;
+  $: statusKey = data?.status === 'pending' ? 'waiting_payment' : data?.status;
+  $: isFinal = data && ['paid','cancelled','expired','failed'].includes(statusKey);
+  $: gatewayActive = data?.gateway_redirect_url || data?.gateway_pay_url || data?.gateway_pay_code || data?.gateway_qris_string || data?.gateway_qris_image_url;
+  $: paymentLink = data?.gateway_redirect_url || data?.gateway_pay_url || '';
+  $: qrisString = data?.gateway_qris_string || data?.gateway_pay_code || '';
+  $: qrisImage = data?.gateway_qris_image_url || '';
   function isURL(s) { return s?.startsWith('http'); }
 
   async function fetchStatus() {
     try {
       data = await api.getInvoice(invoiceNo, cred);
+      await syncQrisPreview(data);
       pollCount++; lastChecked = new Date(); error = '';
       if (isFinal) stopPolling();
     } catch(e) {
@@ -56,6 +63,24 @@
   }
   function refresh() { countdown = 8; fetchStatus(); }
 
+  async function syncQrisPreview(payload) {
+    const code = payload?.gateway_qris_string || payload?.gateway_pay_code || '';
+    const image = payload?.gateway_qris_image_url || '';
+    if (!code) {
+      qrisDataUrl = '';
+      return;
+    }
+    if (image || typeof window === 'undefined') {
+      qrisDataUrl = '';
+      return;
+    }
+    try {
+      qrisDataUrl = await toDataURL(code, { margin: 1, scale: 6 });
+    } catch {
+      qrisDataUrl = '';
+    }
+  }
+
   onMount(() => {
     cred = getCred();
     startPolling();
@@ -64,7 +89,8 @@
 
   const SC = {
     paid:            { icon:'✅', color:'#2f5e0f', bg:'#EAF3DE', title:'Pembayaran Dikonfirmasi!',   desc:'Produk Anda sudah siap di bawah.' },
-    pending:         { icon:'⏳', color:'#854F0B', bg:'#FAEEDA', title:'Menunggu Pembayaran',        desc:'Halaman ini diperbarui otomatis.' },
+    waiting_payment: { icon:'⏳', color:'#854F0B', bg:'#FAEEDA', title:'Menunggu Pembayaran',        desc:'Halaman ini diperbarui otomatis.' },
+    verifying:       { icon:'🔎', color:'#185FA5', bg:'#E6F1FB', title:'Pembayaran Sedang Diverifikasi', desc:'Sistem sedang memastikan pembayaran.' },
     script_executed: { icon:'⚙️', color:'#185FA5', bg:'#E6F1FB', title:'Pesanan Diproses',          desc:'Tim akan menghubungi dalam 1×24 jam.' },
     expired:         { icon:'⌛', color:'#8c2626', bg:'#FCEBEB', title:'Waktu Pembayaran Habis',    desc:'Pesanan otomatis dibatalkan.' },
     failed:          { icon:'❌', color:'#8c2626', bg:'#FCEBEB', title:'Pembayaran Gagal',          desc:'Silakan coba lagi.' },
@@ -123,7 +149,7 @@
     </div>
 
   {:else if data}
-    {@const sc = SC[data.status] || SC.pending}
+    {@const sc = SC[statusKey] || SC.waiting_payment}
 
     <!-- Status banner -->
     <div style="background:{sc.bg};border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -134,7 +160,7 @@
           <div style="font-size:13px;color:{sc.color};opacity:0.8;margin-top:3px">{sc.desc}</div>
         </div>
       </div>
-      {#if data.status === 'pending' && !isFinal}
+      {#if !isFinal}
         <div style="text-align:right;flex-shrink:0">
           {#if timeLeft}
             <div style="font-size:11px;color:{sc.color};opacity:0.7">Berlaku sampai</div>
@@ -173,22 +199,22 @@
           </table>
         </div>
 
-        {#if data.status === 'pending' && data.gateway_pay_url}
-          <div class="card" style="text-align:center;padding:1.5rem">
-            <div style="font-weight:500;font-size:14px;margin-bottom:8px">Selesaikan Pembayaran</div>
-            <a href={data.gateway_pay_url} target="_blank" rel="noopener"
-              style="display:inline-block;background:#0d5fa8;color:#fff;padding:13px 28px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none">
-              💳 Bayar via Gateway →
-            </a>
-            {#if data.expired_at}
-              <div style="font-size:12px;color:#854F0B;margin-top:8px">⚠️ Berlaku sampai: {fmtDateTime(data.expired_at)}</div>
-            {/if}
-          </div>
-        {:else if data.status === 'pending' && data.gateway_pay_code}
-          <div class="card">
-            <div style="font-weight:500;font-size:14px;margin-bottom:10px">Kode Pembayaran</div>
-            <div style="background:#f0f4ff;border-radius:var(--radius);padding:14px;text-align:center">
-              <div class="mono" style="font-size:24px;font-weight:700;letter-spacing:3px">{data.gateway_pay_code}</div>
+        {#if !isFinal}
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">Pembayaran QRIS</div>
+            <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:12px">
+              {#if qrisImage || qrisDataUrl}
+                <img src={qrisImage || qrisDataUrl} alt="QRIS" style="width:100%;max-width:280px;margin:0 auto;border-radius:12px;border:0.5px solid var(--border);background:#fff;padding:8px" />
+              {/if}
+              {#if !qrisImage && !qrisString && paymentLink}
+                <div class="info-box">QRIS belum muncul dari gateway. Gunakan link berikut untuk melanjutkan pembayaran.</div>
+              {/if}
+              {#if paymentLink}
+                <a href={paymentLink} target="_blank" rel="noopener"
+                  style="display:inline-flex;justify-content:center;background:#0d5fa8;color:#fff;padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">
+                  🔗 Buka Halaman Bayar
+                </a>
+              {/if}
             </div>
           </div>
         {/if}
@@ -202,7 +228,7 @@
 
       <!-- Kanan: produk yang diterima -->
       <div>
-        {#if data.status === 'paid' && data.delivered_items?.length}
+        {#if statusKey === 'paid' && data.delivered_items?.length}
           <div class="card" style="padding:0;overflow:hidden">
             <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border);background:#EAF3DE;color:#2f5e0f">
               ✅ Produk Anda
@@ -233,7 +259,7 @@
             </div>
           </div>
 
-        {:else if data.status === 'pending'}
+        {:else if statusKey === 'waiting_payment' || statusKey === 'verifying'}
           <div class="card" style="text-align:center;padding:2.5rem">
             <div class="pulse">⏳</div>
             <div style="font-weight:500;font-size:14px;margin:12px 0 6px">Menunggu Konfirmasi</div>
@@ -247,11 +273,11 @@
             <div style="font-size:13px;color:var(--text-muted)">Tim kami menghubungi dalam 1×24 jam.</div>
           </div>
 
-        {:else if ['expired','cancelled','failed'].includes(data.status)}
+        {:else if ['expired','cancelled','failed'].includes(statusKey)}
           <div class="card" style="text-align:center;padding:2.5rem">
             <div style="font-size:40px;margin-bottom:12px">❌</div>
             <div style="font-weight:500;font-size:14px;margin-bottom:12px">
-              {data.status === 'expired' ? 'Waktu Pembayaran Habis' : 'Pesanan Tidak Berhasil'}
+              {statusKey === 'expired' ? 'Waktu Pembayaran Habis' : 'Pesanan Tidak Berhasil'}
             </div>
             <a href="/" class="btn btn-primary">Beli Lagi</a>
           </div>
@@ -262,6 +288,12 @@
             Cek invoice dengan email →
           </a>
         </div>
+
+        <div style="margin-top:8px;text-align:center">
+          <a href="/komplain?invoice={invoiceNo}" style="font-size:12.5px;color:#0d5fa8;font-weight:500">
+            Komplain ke WhatsApp Admin →
+          </a>
+        </div>
       </div>
     </div>
   {/if}
@@ -270,6 +302,7 @@
 <style>
 .pay-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
 @media(max-width:640px) { .pay-grid { grid-template-columns:1fr; } }
+.info-box { background:#E6F1FB;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#185FA5; }
 .pulse { font-size:40px;display:inline-block;animation:pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.7} }
 </style>

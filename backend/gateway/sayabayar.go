@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -32,7 +33,7 @@ type SBCreateRequest struct {
 	Amount            int64  `json:"amount"`
 	Description       string `json:"description"`
 	ChannelPreference string `json:"channel_preference"` // "platform" | "client"
-	Redirect	      string `json:"redirect_url"`
+	Redirect          string `json:"redirect_url"`
 	ExpiredMinutes    int    `json:"expired_minutes,omitempty"`
 }
 
@@ -59,9 +60,17 @@ type SBResponse struct {
 	Errors  any    `json:"errors,omitempty"`
 }
 
+func ExtractPaymentRef(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	parts := strings.Split(strings.TrimRight(raw, "/"), "/")
+	return parts[len(parts)-1]
+}
+
 // SBWebhookPayload — payload yang dikirim SayaBayar ke webhook endpoint kamu
 type SBWebhookPayload struct {
-	Event     string        `json:"event"`   // "invoice.paid" | "invoice.expired"
+	Event     string        `json:"event"` // "invoice.paid" | "invoice.expired"
 	Invoice   SBInvoiceData `json:"invoice"`
 	Timestamp string        `json:"timestamp"`
 }
@@ -89,6 +98,63 @@ func (s *SayaBayar) CreateInvoice(req SBCreateRequest) (*SBResponse, error) {
 		return nil, fmt.Errorf("sayabayar: %s", result.Message)
 	}
 	return &result, nil
+}
+
+type SBActionResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
+}
+
+func (s *SayaBayar) SelectChannel(invoiceID string, channelType string) error {
+	if strings.TrimSpace(invoiceID) == "" {
+		return fmt.Errorf("invoice id kosong")
+	}
+	body, _ := json.Marshal(map[string]string{"channel_type": channelType})
+	req, err := http.NewRequest("POST", SayaBayarBaseURL+"/pay/"+invoiceID+"/select-channel", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("sayabayar: %w", err)
+	}
+	s.setHeaders(req)
+	resp, err := s.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("sayabayar: request select-channel gagal: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	var result SBActionResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return fmt.Errorf("sayabayar: parse select-channel gagal: %w — %s", err, string(respBody))
+	}
+	if !result.Success {
+		return fmt.Errorf("sayabayar: select-channel gagal: %s", result.Message)
+	}
+	return nil
+}
+
+func (s *SayaBayar) ConfirmPayment(invoiceID string) error {
+	if strings.TrimSpace(invoiceID) == "" {
+		return fmt.Errorf("invoice id kosong")
+	}
+	req, err := http.NewRequest("POST", SayaBayarBaseURL+"/pay/"+invoiceID+"/confirm", bytes.NewBuffer([]byte(`{}`)))
+	if err != nil {
+		return fmt.Errorf("sayabayar: %w", err)
+	}
+	s.setHeaders(req)
+	resp, err := s.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("sayabayar: request confirm gagal: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	var result SBActionResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return fmt.Errorf("sayabayar: parse confirm gagal: %w — %s", err, string(respBody))
+	}
+	if !result.Success {
+		return fmt.Errorf("sayabayar: confirm gagal: %s", result.Message)
+	}
+	return nil
 }
 
 func (s *SayaBayar) GetInvoice(id string) (*SBResponse, error) {

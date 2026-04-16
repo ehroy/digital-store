@@ -31,13 +31,15 @@
 <div class="admin-shell">
   <!-- Top bar -->
   <header class="admin-header">
-    <a href="/" class="brand">
-      <span class="brand-logo">🛍</span>
-      <span>DigiStore</span>
-    </a>
-    <span style="font-size:12px;color:var(--text-muted)">Admin Panel</span>
-    <div style="display:flex;gap:8px;margin-left:auto">
-      <a href="/" class="btn btn-sm">← Toko</a>
+    <div class="brand-wrap">
+      <a href="/" class="brand">
+        <span class="brand-logo">🛍</span>
+        <span>DigiStore</span>
+      </a>
+      <span class="brand-sub">Modern digital store dashboard</span>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="btn btn-sm">Toko</a>
       <button class="btn btn-sm btn-danger" on:click={logout}>Logout</button>
     </div>
   </header>
@@ -45,7 +47,7 @@
   <div class="admin-body">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-label">Menu</div>
+      <div class="sidebar-label">Workspace</div>
       {#each menu as item}
         <a
           href={item.href}
@@ -68,41 +70,73 @@
 .admin-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .admin-header {
   position: sticky; top: 0; z-index: 100;
-  background: #fff; border-bottom: 0.5px solid var(--border);
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
   padding: 0 1.5rem;
-  height: 54px; display: flex; align-items: center; gap: 10px;
+  height: 68px; display: flex; align-items: center; gap: 12px;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 15px; }
+.brand-wrap { display:flex; flex-direction:column; gap:2px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; letter-spacing:-0.02em; }
 .brand-logo {
-  background: #0d5fa8; border-radius: 8px;
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  background: linear-gradient(135deg, var(--primary), #60a5fa);
+  border-radius: 10px;
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; box-shadow: 0 10px 20px rgba(21,93,252,0.2);
 }
+.brand-sub { font-size: 11.5px; color: var(--text-muted); margin-left: 38px; margin-top: -2px; }
+.header-actions { display:flex;gap:8px;margin-left:auto; }
 .admin-body { display: flex; flex: 1; }
 .sidebar {
-  width: 190px; flex-shrink: 0;
-  background: #fff; border-right: 0.5px solid var(--border);
-  padding: 1rem 0.75rem;
-  position: sticky; top: 54px; height: calc(100vh - 54px);
+  width: 214px; flex-shrink: 0;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid var(--border);
+  padding: 1rem 0.85rem;
+  position: sticky; top: 68px; height: calc(100vh - 68px);
   overflow-y: auto;
 }
 .sidebar-label {
-  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em;
   color: var(--text-hint); padding: 0 10px; margin-bottom: 8px;
 }
 .sidebar-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: var(--radius);
+  padding: 10px 12px; border-radius: 12px;
   font-size: 13.5px; color: var(--text);
   transition: background 0.15s;
   margin-bottom: 2px;
 }
-.sidebar-item:hover { background: #f4f4f2; }
-.sidebar-item.active { background: #E6F1FB; color: #185FA5; font-weight: 500; }
+.sidebar-item:hover { background: rgba(21,93,252,0.06); }
+.sidebar-item.active { background: linear-gradient(135deg, rgba(21,93,252,0.12), rgba(96,165,250,0.14)); color: #0f4fd6; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(21,93,252,0.08); }
 .sidebar-icon { font-size: 14px; }
 .admin-main {
   flex: 1; min-width: 0;
-  padding: 1.5rem 1.25rem;
-  max-width: 1000px;
+  padding: 1.5rem 1.25rem 2rem;
+  max-width: 1180px;
+}
+
+@media (max-width: 900px) {
+  .admin-body { flex-direction: column; }
+  .sidebar {
+    width: 100%; height: auto; position: relative; top: 0;
+    border-right: none; border-bottom: 1px solid var(--border);
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    padding: 0.85rem 1rem;
+  }
+  .sidebar-label { width: 100%; margin-bottom: 2px; }
+  .sidebar-item { margin-bottom: 0; white-space: nowrap; }
+  .admin-main { padding: 1rem; }
+}
+
+@media (max-width: 640px) {
+  .admin-header { height: auto; min-height: 64px; padding: 0.8rem 1rem; flex-wrap: wrap; align-items:flex-start; }
+  .brand-wrap { width: 100%; }
+  .brand-sub { margin-left: 38px; }
+  .header-actions { width: 100%; margin-left: 38px; justify-content: flex-start; flex-wrap: wrap; }
+  .sidebar { padding: 0.75rem 1rem; }
+  .sidebar-label { display:none; }
+  .sidebar-item { font-size: 12.5px; padding: 8px 10px; }
+  .admin-main { padding: 0.85rem; }
 }
 </style>

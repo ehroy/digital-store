@@ -203,4 +203,13 @@
 .status-select.badge-cancelled { background:#FCEBEB;color:#8c2626; }
 .status-select.badge-expired { background:#FCEBEB;color:#eb0d0d; }
 
+@media (max-width: 900px) {
+  .status-select { width:100%; max-width:140px; }
+}
+
+@media (max-width: 640px) {
+  .status-select { max-width:none; font-size:11px; }
+  .card { padding:0.85rem; }
+}
+
 </style>
