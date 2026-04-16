@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"digistore/config"
 	"digistore/database"
 	"digistore/email"
 	"digistore/gateway"
@@ -47,6 +48,7 @@ func ValidatePayMethod(method string, cfg *models.PaymentConfig) error {
 }
 
 const gatewayExpireMinutes = 30
+const sayabayarExpireMinutes = 60
 
 // ── resolveGateway ────────────────────────────────────────────────────────────
 
@@ -93,35 +95,48 @@ func createSayaBayarCharge(order *models.Order, cfg *models.PaymentConfig, appBa
 		Description:       fmt.Sprintf("[%s] %s", order.InvoiceNo, order.ProductName),
 		ChannelPreference: channel,
 		Redirect:          appBaseURL + "/payment/" + order.InvoiceNo,
-		ExpiredMinutes:    gatewayExpireMinutes,
+		CallbackURL:       config.App.BackendURL + "/api/webhook/sayabayar",
+		WebhookURL:        config.App.BackendURL + "/api/webhook/sayabayar",
+		ExpiredMinutes:    sayabayarExpireMinutes,
 	})
 	if err != nil {
 		log.Printf("[SAYABAYAR] Gagal buat invoice %s: %v", order.InvoiceNo, err)
 		return GatewayResult{}
 	}
 
-	exp := time.Now().Add(time.Duration(gatewayExpireMinutes) * time.Minute)
-	paymentRef := gateway.ExtractPaymentRef(resp.Data.PaymentURL)
+	exp := time.Now().Add(time.Duration(sayabayarExpireMinutes) * time.Minute)
+	invoiceID := firstNonEmpty(resp.Data.ID, resp.Data.InvoiceNumber)
+	if invoiceID == "" {
+		log.Printf("[SAYABAYAR] invoice id kosong internal=%s raw=%+v", order.InvoiceNo, resp.Data)
+		return GatewayResult{}
+	}
+	payURL := firstNonEmpty(resp.Data.PayURL, resp.Data.PaymentURL)
+	paymentRef := gateway.ExtractPaymentRef(payURL)
 	if paymentRef == "" {
-		paymentRef = resp.Data.ID
+		paymentRef = invoiceID
 	}
 	log.Printf("[SAYABAYAR] Invoice dibuat: internal=%s gateway_id=%s gateway_inv=%s",
-		order.InvoiceNo, resp.Data.ID, resp.Data.InvoiceNumber)
+		order.InvoiceNo, invoiceID, resp.Data.InvoiceNumber)
 
 	if cfg.SayaBayarAutoQRIS {
 		if err := sb.SelectChannel(paymentRef, "qris"); err != nil {
 			log.Printf("[SAYABAYAR] select-channel gagal invoice=%s ref=%s: %v", order.InvoiceNo, paymentRef, err)
-		} else if cfg.SayaBayarAutoConfirm {
+		}
+		if cfg.SayaBayarAutoConfirm {
 			if err := sb.ConfirmPayment(paymentRef); err != nil {
 				log.Printf("[SAYABAYAR] confirm gagal invoice=%s ref=%s: %v", order.InvoiceNo, paymentRef, err)
 			}
 		}
 	}
+	if strings.TrimSpace(payURL) == "" {
+		log.Printf("[SAYABAYAR] pay_url kosong internal=%s id=%s resp=%+v", order.InvoiceNo, invoiceID, resp.Data)
+		return GatewayResult{}
+	}
 
 	return GatewayResult{
-		ChargeID:     resp.Data.ID,            // clx9abc123
+		ChargeID:     invoiceID,               // clx9abc123
 		GatewayInvNo: resp.Data.InvoiceNumber, // INV-20240327-0042 dari SayaBayar
-		PayURL:       resp.Data.PaymentURL,
+		PayURL:       payURL,
 		ExpiredAt:    &exp,
 		Provider:     "sayabayar",
 	}
@@ -139,7 +154,7 @@ func createDompetXCharge(order *models.Order, cfg *models.PaymentConfig, appBase
 		Currency:        "IDR",
 		Reference:       order.InvoiceNo,
 		ReturnURL:       appBaseURL + "/payment/" + order.InvoiceNo,
-		CallbackURL:     appBaseURL + "/api/webhook/dompetx",
+		CallbackURL:     config.App.BackendURL + "/api/webhook/dompetx",
 		SettlementSpeed: "standard",
 		Metadata: map[string]any{
 			"invoice_no": order.InvoiceNo,

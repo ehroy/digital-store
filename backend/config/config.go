@@ -18,6 +18,7 @@ type Config struct {
 	SMTPPass                string
 	SMTPFrom                string
 	FrontendURL             string
+	BackendURL              string
 	ResendAPIKey            string
 	EmailFrom               string
 	KoalaStoreWebhookSecret string
@@ -40,6 +41,7 @@ func Load() {
 		SMTPPass:                getEnv("SMTP_PASS", ""),
 		SMTPFrom:                getEnv("SMTP_FROM", "noreply@digistore.id"),
 		FrontendURL:             getEnv("FRONTEND_URL", "http://localhost:5173"),
+		BackendURL:              getEnv("BACKEND_URL", "http://localhost:8080"),
 		ResendAPIKey:            getEnv("APIKEY_RESEND", ""),
 		EmailFrom:               getEnv("SMTP_FROM", "noreply@digitalku-murah.com"),
 		KoalaStoreWebhookSecret: getEnv("KOALASTORE_WEBHOOK_SECRET", "Kaserinas123@"),

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -34,6 +35,8 @@ type SBCreateRequest struct {
 	Description       string `json:"description"`
 	ChannelPreference string `json:"channel_preference"` // "platform" | "client"
 	Redirect          string `json:"redirect_url"`
+	CallbackURL       string `json:"callback_url,omitempty"`
+	WebhookURL        string `json:"webhook_url,omitempty"`
 	ExpiredMinutes    int    `json:"expired_minutes,omitempty"`
 }
 
@@ -43,6 +46,7 @@ type SBInvoiceData struct {
 	Amount        int64  `json:"amount"`
 	AmountUnique  int64  `json:"amount_unique"`
 	UniqueCode    int    `json:"unique_code"`
+	PayURL        string `json:"pay_url"`
 	PaymentURL    string `json:"payment_url"`
 	Status        string `json:"status"` // pending | paid | expired
 	ExpiredAt     string `json:"expired_at"`
@@ -64,8 +68,15 @@ func ExtractPaymentRef(raw string) string {
 	if raw == "" {
 		return ""
 	}
-	parts := strings.Split(strings.TrimRight(raw, "/"), "/")
-	return parts[len(parts)-1]
+	if parsed, err := url.Parse(raw); err == nil {
+		path := strings.Trim(parsed.Path, "/")
+		if path != "" {
+			parts := strings.Split(path, "/")
+			return strings.TrimSpace(parts[len(parts)-1])
+		}
+	}
+	parts := strings.Split(strings.TrimRight(strings.Split(raw, "?")[0], "/"), "/")
+	return strings.TrimSpace(parts[len(parts)-1])
 }
 
 // SBWebhookPayload — payload yang dikirim SayaBayar ke webhook endpoint kamu
@@ -91,11 +102,29 @@ func (s *SayaBayar) CreateInvoice(req SBCreateRequest) (*SBResponse, error) {
 	respBody, _ := io.ReadAll(resp.Body)
 
 	var result SBResponse
+	if len(respBody) == 0 {
+		return nil, fmt.Errorf("sayabayar: empty response status=%d", resp.StatusCode)
+	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("sayabayar: parse gagal: %w — %s", err, string(respBody))
+		return nil, fmt.Errorf("sayabayar: parse gagal: %w — status=%d body=%s", err, resp.StatusCode, string(respBody))
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if result.Message != "" {
+			return nil, fmt.Errorf("sayabayar: http %d: %s", resp.StatusCode, result.Message)
+		}
+		if result.Errors != nil {
+			return nil, fmt.Errorf("sayabayar: http %d: %+v", resp.StatusCode, result.Errors)
+		}
+		return nil, fmt.Errorf("sayabayar: http %d: %s", resp.StatusCode, string(respBody))
 	}
 	if !result.Success {
-		return nil, fmt.Errorf("sayabayar: %s", result.Message)
+		if result.Message != "" {
+			return nil, fmt.Errorf("sayabayar: %s", result.Message)
+		}
+		if result.Errors != nil {
+			return nil, fmt.Errorf("sayabayar: %+v", result.Errors)
+		}
+		return nil, fmt.Errorf("sayabayar: response tidak sukses: %s", string(respBody))
 	}
 	return &result, nil
 }
