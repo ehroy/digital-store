@@ -159,6 +159,7 @@ func attachProviderVariants(p *models.Product) {
 	grouped := buildProviderCatalogGroup(group)
 	p.Variants = grouped.Variants
 	p.Price = grouped.Price
+	p.ImageURL = grouped.ImageURL
 	p.ProviderStatus = grouped.ProviderStatus
 	p.ProviderStock = grouped.ProviderStock
 	p.AvailableStock = grouped.AvailableStock
@@ -219,12 +220,25 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 	})
 
 	best.Name = providerFamilyName(best.Name)
+	best.ImageURL = providerGroupImageURL(products, best)
 	best.Price = minPrice
 	best.Variants = variants
 	best.ProviderStatus = providerCatalogStatus(variants)
 	best.ProviderStock = totalStock
 	best.AvailableStock = totalStock
 	return best
+}
+
+func providerGroupImageURL(products []models.Product, best models.Product) string {
+	if strings.TrimSpace(best.ImageURL) != "" {
+		return best.ImageURL
+	}
+	for _, p := range products {
+		if strings.TrimSpace(p.ImageURL) != "" {
+			return p.ImageURL
+		}
+	}
+	return ""
 }
 
 func providerProductBetter(candidate, current models.Product) bool {

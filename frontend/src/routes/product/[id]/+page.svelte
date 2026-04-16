@@ -28,8 +28,13 @@
 
   $: outOfStock = product?.type === 'stock' && product?.available_stock === 0;
   $: hasVariants = product?.type === 'provider' && Array.isArray(product?.variants) && product.variants.length > 0;
+  $: compactVariants = hasVariants && product.variants.length > 2;
   $: providerOutOfStock = hasVariants && product.variants.every(v => v.stock_status === 'out_of_stock');
   $: totalVariantStock = hasVariants ? product.variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0) : 0;
+
+  function compactVariantName(name) {
+    return (name || 'Varian').split(/\s+/).slice(0, 2).join(' ');
+  }
 </script>
 
 <svelte:head>
@@ -112,7 +117,7 @@
         {:else}
           <div style="font-size:12.5px;color:#2f5e0f;font-weight:500;margin-bottom:14px">
             {#if hasVariants}
-              ✓ Stok asli {totalVariantStock}
+              ✓ Stok {totalVariantStock}
             {:else}
               ✓ Selalu tersedia
             {/if}
@@ -131,20 +136,24 @@
         {#if hasVariants}
           <div class="variant-preview">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Pilihan varian tersedia</div>
-            {#each product.variants as variant}
+            {#each product.variants as variant, index}
               <div class="variant-row">
                 <div>
-                  <div style="font-weight:500">{variant.variant_name || 'Varian'}</div>
-                  <div style="font-size:11.5px;color:var(--text-muted)">
-                    {#if variant.duration_label}{variant.duration_label} {/if}
-                    {#if variant.account_type}{variant.account_type} {/if}
-                    {#if variant.region}{variant.region} {/if}
+                  <div class:compact-variant-name={compactVariants} style="font-weight:500" title={variant.variant_name || 'Varian'}>
+                    {compactVariants ? `${compactVariantName(variant.variant_name)} ${index + 1}` : (variant.variant_name || 'Varian')}
                   </div>
+                  {#if !compactVariants}
+                    <div style="font-size:11.5px;color:var(--text-muted)">
+                      {#if variant.duration_label}{variant.duration_label} {/if}
+                      {#if variant.account_type}{variant.account_type} {/if}
+                      {#if variant.region}{variant.region} {/if}
+                    </div>
+                  {/if}
                 </div>
                 <div style="text-align:right">
                   <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
-                  <div style="font-size:11px;color:var(--text-muted)">
-                    {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok asli ${variant.available_stock}`}
+                  <div class:compact-variant-meta={compactVariants} style="font-size:11px;color:var(--text-muted)">
+                    {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok ${variant.available_stock}`}
                   </div>
                 </div>
               </div>
@@ -184,13 +193,23 @@
 
     <!-- Deskripsi Lengkap -->
     <div class="desc-section">
-      <h2 style="font-size:17px;font-weight:500;margin-bottom:14px">Deskripsi Produk</h2>
-      <div class="desc-body">
-        {#each product.description.split('\n') as para}
-          {#if para.trim()}
-            <p>{para}</p>
-          {/if}
-        {/each}
+      <div class="desc-header">
+        <div>
+          <div class="desc-kicker">Informasi Produk</div>
+          <h2>Deskripsi Produk</h2>
+        </div>
+        <div class="desc-note">Baca detail sebelum checkout</div>
+      </div>
+
+      <div class="desc-card">
+        <div class="desc-accent">✦</div>
+        <div class="desc-body">
+          {#each product.description.split('\n') as para}
+            {#if para.trim()}
+              <p>{para}</p>
+            {/if}
+          {/each}
+        </div>
       </div>
     </div>
 
@@ -256,6 +275,15 @@
   padding: 9px 0;
   border-top: 0.5px solid var(--border);
 }
+.compact-variant-name {
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compact-variant-meta {
+  white-space: nowrap;
+}
 .variant-row:first-of-type { border-top: 0; padding-top: 0; }
 
 .delivery-info {
@@ -279,6 +307,56 @@
   border-top: 0.5px solid var(--border);
   padding-top: 1.75rem;
 }
+.desc-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.desc-kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.desc-header h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.desc-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: #f8f8f6;
+  border: 0.5px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+.desc-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 1rem 1rem 0.95rem;
+  border: 0.5px solid rgba(21,93,252,0.12);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95));
+  box-shadow: 0 12px 28px rgba(15,23,42,0.05);
+}
+.desc-accent {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(21,93,252,0.12), rgba(37,211,102,0.10));
+  color: var(--primary);
+  font-size: 16px;
+}
 .desc-body {
   font-size: 14.5px;
   line-height: 1.8;
@@ -286,4 +364,9 @@
   max-width: 720px;
 }
 .desc-body p { margin-bottom: 10px; }
+@media (max-width: 640px) {
+  .desc-header { align-items: flex-start; flex-direction: column; }
+  .desc-note { white-space: normal; }
+  .desc-card { grid-template-columns: 1fr; }
+}
 </style>

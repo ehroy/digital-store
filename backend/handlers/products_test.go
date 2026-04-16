@@ -10,7 +10,7 @@ func TestNormalizePublicCatalogGroupsProviderVariants(t *testing.T) {
 	products := []models.Product{
 		{ID: 1, Name: "Template A", Type: "stock"},
 		{ID: 2, Name: "Netflix — Sharing 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 50000, ProviderStatus: "available", UpdatedAt: testTime(2)},
-		{ID: 3, Name: "Netflix — Private 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 45000, ProviderStatus: "available", UpdatedAt: testTime(3)},
+		{ID: 3, Name: "Netflix — Private 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 45000, ProviderStatus: "available", ImageURL: "/uploads/products/netflix-private.jpg", UpdatedAt: testTime(3)},
 		{ID: 4, Name: "Spotify — Family 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 30000, ProviderStatus: "manual", UpdatedAt: testTime(1)},
 	}
 
@@ -33,6 +33,9 @@ func TestNormalizePublicCatalogGroupsProviderVariants(t *testing.T) {
 	}
 	if netflix.Price != 45000 {
 		t.Fatalf("expected lowest variant price, got %d", netflix.Price)
+	}
+	if netflix.ImageURL != "/uploads/products/netflix-private.jpg" {
+		t.Fatalf("expected grouped image_url to be preserved, got %q", netflix.ImageURL)
 	}
 	if netflix.ProviderStock != 0 || netflix.AvailableStock != 0 {
 		t.Fatalf("expected grouped stock to reflect variant stock cache, got %+v", netflix)

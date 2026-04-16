@@ -89,13 +89,19 @@
 
 <div class="hero">
   <div class="hero-panel">
+    <div class="hero-orb hero-orb-a"></div>
+    <div class="hero-orb hero-orb-b"></div>
     <div class="hero-copy">
       <div class="hero-kicker">Digital Store</div>
-      <h1>Produk digital yang simpel, elegan, dan cepat dibeli.</h1>
-      <p>Template, ebook, plugin, dan layanan digital yang dirapikan dalam tampilan minimal modern.</p>
+      <h1>Belanja produk digital jadi lebih rapi, cepat, dan meyakinkan.</h1>
+      <p>Temukan produk, cek status, lalu bayar dengan QRIS tanpa alur yang bertele-tele. Semua dibuat lebih jelas untuk user.</p>
+      <div class="hero-actions">
+        <a href="#produk" class="btn btn-primary">Lihat produk</a>
+        <a href="/cek-invoice" class="btn">Cek invoice</a>
+      </div>
       <div class="hero-chips">
-        <span>Instan</span>
-        <span>Aman</span>
+        <span>QRIS aktif</span>
+        <span>Status transparan</span>
         <span>Support WhatsApp</span>
       </div>
     </div>
@@ -103,11 +109,25 @@
       <div class="aside-label">Pilihan cepat</div>
       <div class="aside-value">Checkout QRIS</div>
       <div class="aside-sub">Invoice, status pembayaran, dan komplain semuanya rapi di satu tempat.</div>
+      <div class="aside-stats">
+        <div>
+          <strong>1x</strong>
+          <span>alur bayar</span>
+        </div>
+        <div>
+          <strong>Live</strong>
+          <span>cek status</span>
+        </div>
+        <div>
+          <strong>Rapi</strong>
+          <span>tampilan toko</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="store-container">
+<div class="store-container" id="produk">
   <div class="filter-row">
     <input class="input" placeholder="🔍  Cari produk..." bind:value={search} />
     <div class="cat-pills">
@@ -141,7 +161,7 @@
             <div style="margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap">
               <span class="badge badge-stock">{product.category}</span>
               {#if product.type === 'provider'}
-                <span class="badge" style="background:#EEEDFE;color:#534AB7">KoalaStore</span>
+         
               {:else if product.type === 'script'}
                 <span class="badge" style="background:#EEEDFE;color:#534AB7">Jasa</span>
               {/if}
@@ -234,14 +254,22 @@
 .nav-tag { font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.04); }
 .hero { padding:2.1rem 1rem 1.2rem; }
 .hero-panel {
+  position:relative;overflow:hidden;
   max-width:1100px;margin:0 auto;
   display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,0.7fr);gap:14px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,252,0.96));
+  background:
+    radial-gradient(circle at top left, rgba(96,165,250,0.16), transparent 34%),
+    linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.97));
   border:1px solid var(--border);border-radius:24px;padding:1.35rem;box-shadow:var(--shadow);
 }
+.hero-orb { position:absolute;border-radius:999px;filter:blur(12px);pointer-events:none; }
+.hero-orb-a { top:-36px; right:12%; width:140px; height:140px; background:rgba(37,99,235,0.08); }
+.hero-orb-b { bottom:-28px; left:38%; width:92px; height:92px; background:rgba(14,165,233,0.10); }
+.hero-copy, .hero-aside { position:relative; z-index:1; }
 .hero-copy h1 { font-size: clamp(28px, 4vw, 42px); line-height:1.05; letter-spacing:-0.04em; margin-bottom:10px; max-width:12ch; }
 .hero-copy p { color:var(--text-muted);font-size:14.5px;max-width:58ch; }
 .hero-kicker { display:inline-flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--primary);font-weight:700;margin-bottom:10px; }
+.hero-actions { display:flex;gap:10px;flex-wrap:wrap;margin-top:16px; }
 .hero-chips { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px; }
 .hero-chips span {
   font-size:12px;padding:6px 10px;border-radius:999px;
@@ -256,6 +284,10 @@
 .aside-label { font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#3b82f6;font-weight:700; }
 .aside-value { font-size:22px;font-weight:800;letter-spacing:-0.03em; }
 .aside-sub { color:var(--text-muted);font-size:13px;line-height:1.6; }
+.aside-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px; }
+.aside-stats div { background:rgba(255,255,255,0.78);border:1px solid rgba(21,93,252,0.10);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center; }
+.aside-stats strong { font-size:13px;color:#0f4fd6; }
+.aside-stats span { font-size:11px;color:var(--text-muted); }
 .store-container { max-width:1100px;margin:0 auto;padding:1.25rem 1rem 3rem; }
 .filter-row { display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center; }
 .filter-row .input { flex:1;min-width:200px; }
@@ -293,6 +325,8 @@
 .wa-float:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,211,102,0.45); }
 @media (max-width: 800px) {
   .hero-panel { grid-template-columns: 1fr; }
+  .hero-copy h1 { max-width: unset; }
+  .aside-stats { grid-template-columns:repeat(3,1fr); }
   .nav-tag { display:none; }
 }
 </style>
