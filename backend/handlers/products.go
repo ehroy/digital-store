@@ -12,7 +12,7 @@ import (
 
 func GetProducts(c *gin.Context) {
 	var products []models.Product
-	query := database.DB.Order("created_at desc")
+	query := database.DB
 	if c.Query("admin") != "1" {
 		query = query.Where("active = ?", true)
 	}
@@ -24,9 +24,17 @@ func GetProducts(c *gin.Context) {
 	for i := range products {
 		populateProductAvailability(&products[i])
 	}
+	productCounts, familyCounts := buildProductSalesIndex(products)
 
 	if c.Query("admin") != "1" {
 		products = normalizePublicCatalog(products)
+		products = sortPublicCatalog(products, c.Query("sort"), productCounts, familyCounts)
+	} else {
+		products = sortPublicCatalog(products, c.Query("sort"), productCounts, familyCounts)
+	}
+
+	for i := range products {
+		applyProductWarrantyDefaults(&products[i])
 	}
 
 	c.JSON(http.StatusOK, products)
@@ -42,6 +50,7 @@ func GetProduct(c *gin.Context) {
 	if p.Type == "provider" {
 		attachProviderVariants(&p)
 	}
+	applyProductWarrantyDefaults(&p)
 	c.JSON(http.StatusOK, p)
 }
 
@@ -51,6 +60,7 @@ func CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	applyProductWarrantyDefaults(&p)
 	p.ID = 0
 	database.DB.Create(&p)
 	c.JSON(http.StatusCreated, p)
@@ -66,6 +76,7 @@ func UpdateProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	applyProductWarrantyDefaults(&p)
 	database.DB.Save(&p)
 	c.JSON(http.StatusOK, p)
 }
@@ -139,6 +150,101 @@ func normalizePublicCatalog(products []models.Product) []models.Product {
 	return result
 }
 
+func sortPublicCatalog(products []models.Product, sortMode string, productCounts map[uint]int64, familyCounts map[string]int64) []models.Product {
+	sortMode = strings.ToLower(strings.TrimSpace(sortMode))
+	if sortMode == "" {
+		sortMode = "terbaru"
+	}
+
+	if productCounts == nil || familyCounts == nil {
+		productCounts, familyCounts = buildProductSalesIndex(products)
+	}
+
+	sort.SliceStable(products, func(i, j int) bool {
+		left := catalogSortValue(products[i], sortMode, productCounts, familyCounts)
+		right := catalogSortValue(products[j], sortMode, productCounts, familyCounts)
+
+		if left.primary != right.primary {
+			if sortMode == "termurah" {
+				return left.primary < right.primary
+			}
+			return left.primary > right.primary
+		}
+		if left.secondary != right.secondary {
+			if sortMode == "termurah" {
+				return left.secondary > right.secondary
+			}
+			return left.secondary > right.secondary
+		}
+		return strings.ToLower(products[i].Name) < strings.ToLower(products[j].Name)
+	})
+
+	return products
+}
+
+type catalogSortInfo struct {
+	primary   int64
+	secondary int64
+}
+
+func catalogSortValue(p models.Product, sortMode string, productCounts map[uint]int64, familyCounts map[string]int64) catalogSortInfo {
+	switch sortMode {
+	case "terlaris", "terpopuler", "popular", "best_seller", "bestseller":
+		return catalogSortInfo{
+			primary:   catalogSalesCount(p, productCounts, familyCounts),
+			secondary: p.Price,
+		}
+	case "termurah", "cheapest", "price_asc":
+		return catalogSortInfo{
+			primary:   p.Price,
+			secondary: catalogSalesCount(p, productCounts, familyCounts),
+		}
+	case "terbaru", "newest", "latest":
+		return catalogSortInfo{
+			primary:   p.UpdatedAt.Unix(),
+			secondary: p.CreatedAt.Unix(),
+		}
+	default:
+		return catalogSortInfo{
+			primary:   p.CreatedAt.Unix(),
+			secondary: p.UpdatedAt.Unix(),
+		}
+	}
+}
+
+func catalogSalesCount(p models.Product, productCounts map[uint]int64, familyCounts map[string]int64) int64 {
+	if p.Type == "provider" && strings.Contains(strings.ToLower(p.ProviderName), "koala") {
+		return familyCounts[providerCatalogKey(p.Name)]
+	}
+	return productCounts[p.ID]
+}
+
+func buildProductSalesIndex(products []models.Product) (map[uint]int64, map[string]int64) {
+	productCounts := map[uint]int64{}
+	familyCounts := map[string]int64{}
+
+	var orderRows []struct {
+		ProductID uint
+		Total     int64
+	}
+	database.DB.Model(&models.Order{}).
+		Select("product_id, COUNT(*) as total").
+		Where("status = ? OR fulfillment_status = ?", "paid", "fulfilled").
+		Group("product_id").
+		Scan(&orderRows)
+	for _, row := range orderRows {
+		productCounts[row.ProductID] = row.Total
+	}
+
+	for _, p := range products {
+		if p.Type == "provider" && strings.Contains(strings.ToLower(p.ProviderName), "koala") {
+			familyCounts[providerCatalogKey(p.Name)] += productCounts[p.ID]
+		}
+	}
+
+	return productCounts, familyCounts
+}
+
 func attachProviderVariants(p *models.Product) {
 	var products []models.Product
 	database.DB.
@@ -196,18 +302,21 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 			hasMinPrice = true
 		}
 		variants = append(variants, models.CatalogVariant{
-			ProductID:      p.ID,
-			ProviderCode:   p.ProviderCode,
-			VariantName:    providerVariantName(p.Name),
-			DurationLabel:  providerDurationName(p.Name),
-			AccountType:    providerAccountType(p.Name),
-			Region:         providerRegionName(p.Name),
-			StockStatus:    stock,
-			AvailableStock: p.ProviderStock,
-			Price:          p.Price,
-			OriginalPrice:  p.ProviderPrice,
-			IsActive:       p.Active,
+			ProductID:          p.ID,
+			ProviderCode:       p.ProviderCode,
+			VariantName:        providerVariantName(p.Name),
+			DurationLabel:      providerDurationName(p.Name),
+			AccountType:        providerAccountType(p.Name),
+			Region:             providerRegionName(p.Name),
+			WarrantyTerms:      p.WarrantyTerms,
+			TermsAndConditions: p.TermsAndConditions,
+			StockStatus:        stock,
+			AvailableStock:     p.ProviderStock,
+			Price:              p.Price,
+			OriginalPrice:      p.ProviderPrice,
+			IsActive:           p.Active,
 		})
+		applyProviderVariantWarrantyDefaults(&variants[len(variants)-1], stock)
 	}
 	sort.SliceStable(variants, func(i, j int) bool {
 		if variants[i].StockStatus != variants[j].StockStatus {
@@ -226,6 +335,8 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 	best.ProviderStatus = providerCatalogStatus(variants)
 	best.ProviderStock = totalStock
 	best.AvailableStock = totalStock
+	best.WarrantyTerms = pickWarrantyText(products, true)
+	best.TermsAndConditions = pickTermsText(products, true)
 	return best
 }
 
@@ -331,4 +442,34 @@ func providerCatalogStatus(variants []models.CatalogVariant) string {
 		}
 	}
 	return "out_of_stock"
+}
+
+func pickWarrantyText(products []models.Product, isProvider bool) string {
+	for _, p := range products {
+		if strings.TrimSpace(p.WarrantyTerms) != "" {
+			return decorateWarrantyText(p.WarrantyTerms, "🛡️")
+		}
+	}
+	if isProvider {
+		return buildProviderWarrantyTerms("available")
+	}
+	if len(products) > 0 {
+		return buildInternalWarrantyTerms(products[0].Type)
+	}
+	return ""
+}
+
+func pickTermsText(products []models.Product, isProvider bool) string {
+	for _, p := range products {
+		if strings.TrimSpace(p.TermsAndConditions) != "" {
+			return decorateWarrantyText(p.TermsAndConditions, "📌")
+		}
+	}
+	if isProvider {
+		return buildProviderTermsAndConditions("available")
+	}
+	if len(products) > 0 {
+		return buildInternalTermsAndConditions(products[0].Type)
+	}
+	return ""
 }

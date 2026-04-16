@@ -36,7 +36,7 @@
                    : 'manual';
 </script>
 
-<svelte:head><title>Pembayaran — DigiStore Admin</title></svelte:head>
+<svelte:head><title>Pembayaran — Digital Murah Admin</title></svelte:head>
 
 <div class="page-header"><h1 class="page-title">Pengaturan Pembayaran</h1></div>
 

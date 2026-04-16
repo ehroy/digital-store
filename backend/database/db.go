@@ -71,13 +71,15 @@ func seed() {
 
 	DB.Model(&models.Product{}).Count(&count)
 	if count == 0 {
-		p1 := models.Product{Name: "Template Website Bisnis Pro", Description: "Template modern 12 halaman, SEO-ready, dokumentasi lengkap.", Price: 149000, Category: "Template", Type: "stock", Active: true, Icon: "🌐"}
-		p2 := models.Product{Name: "Ebook SEO Mastery 2026", Description: "250 halaman panduan SEO, studi kasus nyata.", Price: 79000, Category: "Ebook", Type: "stock", Active: true, Icon: "📚"}
-		p3 := models.Product{Name: "Plugin WordPress SEO Turbo", Description: "Plugin SEO premium: auto sitemap, schema markup.", Price: 129000, Category: "Plugin", Type: "stock", Active: true, Icon: "⚡"}
+		p1 := models.Product{Name: "Template Website Bisnis Pro", Description: "Template modern 12 halaman, SEO-ready, dokumentasi lengkap.", Price: 149000, Category: "Template", Type: "stock", Active: true, Icon: "🌐", WarrantyTerms: "🛡️ Garansi file aktif 7 hari.\n⏱️ Klaim maksimal 1x24 jam setelah produk diterima.\n📩 Sertakan invoice dan screenshot kendala.\n⚠️ Garansi hangus jika file dibagikan ulang.", TermsAndConditions: "📌 Produk dikirim dalam bentuk file digital.\n📌 Revisi bukan termasuk garansi jika itu permintaan baru.\n📌 Simpan invoice untuk kebutuhan klaim."}
+		p2 := models.Product{Name: "Ebook SEO Mastery 2026", Description: "250 halaman panduan SEO, studi kasus nyata.", Price: 79000, Category: "Ebook", Type: "stock", Active: true, Icon: "📚", WarrantyTerms: "🛡️ Garansi file dapat dibuka 7 hari.\n⏱️ Klaim maksimal 1x24 jam setelah penerimaan.\n📩 Lampirkan bukti error atau file rusak.\n⚠️ Garansi tidak berlaku jika file diubah sendiri.", TermsAndConditions: "📌 Produk berupa file digital yang dikirim otomatis.\n📌 Tidak ada penggantian untuk kelalaian pengguna.\n📌 Pastikan perangkat mendukung format file."}
+		p3 := models.Product{Name: "Plugin WordPress SEO Turbo", Description: "Plugin SEO premium: auto sitemap, schema markup.", Price: 129000, Category: "Plugin", Type: "stock", Active: true, Icon: "⚡", WarrantyTerms: "🛡️ Garansi lisensi aktif sesuai masa pakai.\n⏱️ Klaim maksimal 1x24 jam setelah aktivasi.\n📩 Sertakan invoice dan bukti error aktivasi.\n⚠️ Garansi hangus jika lisensi dipindah tanpa izin.", TermsAndConditions: "📌 Lisensi hanya untuk penggunaan sesuai deskripsi.\n📌 Update mengikuti paket yang dibeli.\n📌 Simpan data pembelian dengan aman."}
 		p4 := models.Product{
 			Name: "Layanan Desain Logo Premium", Description: "Logo profesional, revisi unlimited, format AI/PNG/SVG.",
 			Price: 299000, Category: "Jasa", Type: "script", Active: true, Icon: "🎨",
-			Script: `[{"provider":"email","to":"admin@example.com","subject":"🎨 Order Logo: {{invoice_no}}","body":"Pembeli: {{buyer_name}} ({{buyer_email}})\nTotal: {{total}}\nSegera hubungi klien."},{"provider":"log","message":"Tiket desain dibuat untuk {{buyer_name}} — invoice {{invoice_no}}"}]`,
+			WarrantyTerms:      "🛡️ Garansi revisi sesuai paket layanan.\n⏱️ Respon maksimal 1x24 jam kerja.\n📩 Sertakan invoice dan detail revisi.\n⚠️ Garansi tidak berlaku untuk brief baru di luar paket.",
+			TermsAndConditions: "📌 Revisi mengikuti ruang lingkup paket.\n📌 Permintaan tambahan bisa dikenakan biaya.\n📌 Komplain wajib menyertakan invoice.",
+			Script:             `[{"provider":"email","to":"admin@example.com","subject":"🎨 Order Logo: {{invoice_no}}","body":"Pembeli: {{buyer_name}} ({{buyer_email}})\nTotal: {{total}}\nSegera hubungi klien."},{"provider":"log","message":"Tiket desain dibuat untuk {{buyer_name}} — invoice {{invoice_no}}"}]`,
 		}
 		for _, p := range []*models.Product{&p1, &p2, &p3, &p4} {
 			DB.Create(p)

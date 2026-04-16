@@ -63,7 +63,7 @@
   const statuses = ['pending','paid','script_executed','cancelled',"expired"];
 </script>
 
-<svelte:head><title>Pesanan — DigiStore Admin</title></svelte:head>
+<svelte:head><title>Pesanan — Digital Murah Admin</title></svelte:head>
 
 <div class="page-header">
   <h1 class="page-title">Daftar Pesanan</h1>

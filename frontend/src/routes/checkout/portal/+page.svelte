@@ -90,7 +90,7 @@
   onDestroy(stopPolling);
 </script>
 
-<svelte:head><title>Portal Pembayaran — DigiStore</title></svelte:head>
+<svelte:head><title>Portal Pembayaran — Digital Murah</title></svelte:head>
 
 <div class="portal-wrap">
   {#if isPaid}
@@ -121,7 +121,7 @@
     <div class="portal-card">
       <div class="brand">
         <span class="brand-logo">🛍</span>
-        <span>DigiStore</span>
+        <span>Digital Murah</span>
       </div>
 
       <div class="status-ring">

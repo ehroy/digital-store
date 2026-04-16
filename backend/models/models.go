@@ -3,21 +3,23 @@ package models
 import "time"
 
 type Product struct {
-	ID             uint             `json:"id"              gorm:"primaryKey;autoIncrement"`
-	Name           string           `json:"name"            gorm:"not null"`
-	Description    string           `json:"description"`
-	Price          int64            `json:"price"           gorm:"not null"`
-	Category       string           `json:"category"`
-	Type           string           `json:"type"            gorm:"not null;default:'stock'"`
-	Icon           string           `json:"icon"            gorm:"default:'📦'"`
-	Active         bool             `json:"active"          gorm:"default:true"`
-	ImageURL       string           `json:"image_url"       gorm:"default:''"`
-	Script         string           `json:"script"          gorm:"type:text"`
-	AvailableStock int              `json:"available_stock"  gorm:"-"` // untuk tipe stock: jumlah item tersedia
-	TotalStock     int              `json:"total_stock"      gorm:"-"` // untuk tipe stock: total item
-	ProviderStock  int              `json:"provider_stock"   gorm:"-"` // untuk tipe provider: stok real dari KoalaStore
-	ProviderStatus string           `json:"provider_status"  gorm:"-"` // "available"|"out_of_stock"|"manual"
-	Variants       []CatalogVariant `json:"variants,omitempty" gorm:"-"`
+	ID                 uint             `json:"id"              gorm:"primaryKey;autoIncrement"`
+	Name               string           `json:"name"            gorm:"not null"`
+	Description        string           `json:"description"`
+	Price              int64            `json:"price"           gorm:"not null"`
+	Category           string           `json:"category"`
+	Type               string           `json:"type"            gorm:"not null;default:'stock'"`
+	Icon               string           `json:"icon"            gorm:"default:'📦'"`
+	Active             bool             `json:"active"          gorm:"default:true"`
+	ImageURL           string           `json:"image_url"       gorm:"default:''"`
+	Script             string           `json:"script"          gorm:"type:text"`
+	WarrantyTerms      string           `json:"warranty_terms"   gorm:"type:text;default:''"`
+	TermsAndConditions string           `json:"terms_and_conditions" gorm:"type:text;default:''"`
+	AvailableStock     int              `json:"available_stock"  gorm:"-"` // untuk tipe stock: jumlah item tersedia
+	TotalStock         int              `json:"total_stock"      gorm:"-"` // untuk tipe stock: total item
+	ProviderStock      int              `json:"provider_stock"   gorm:"-"` // untuk tipe provider: stok real dari KoalaStore
+	ProviderStatus     string           `json:"provider_status"  gorm:"-"` // "available"|"out_of_stock"|"manual"
+	Variants           []CatalogVariant `json:"variants,omitempty" gorm:"-"`
 
 	// Provider product fields — diisi jika Type = "provider"
 	// Produk diambil dari API provider eksternal (mis: KoalaStore)
@@ -32,17 +34,19 @@ type Product struct {
 }
 
 type CatalogVariant struct {
-	ProductID      uint   `json:"product_id"`
-	ProviderCode   string `json:"provider_code"`
-	VariantName    string `json:"variant_name"`
-	DurationLabel  string `json:"duration_label,omitempty"`
-	AccountType    string `json:"account_type,omitempty"`
-	Region         string `json:"region,omitempty"`
-	StockStatus    string `json:"stock_status"`
-	AvailableStock int    `json:"available_stock"`
-	Price          int64  `json:"price"`
-	OriginalPrice  int64  `json:"original_price,omitempty"`
-	IsActive       bool   `json:"is_active"`
+	ProductID          uint   `json:"product_id"`
+	ProviderCode       string `json:"provider_code"`
+	VariantName        string `json:"variant_name"`
+	DurationLabel      string `json:"duration_label,omitempty"`
+	AccountType        string `json:"account_type,omitempty"`
+	Region             string `json:"region,omitempty"`
+	WarrantyTerms      string `json:"warranty_terms,omitempty"`
+	TermsAndConditions string `json:"terms_and_conditions,omitempty"`
+	StockStatus        string `json:"stock_status"`
+	AvailableStock     int    `json:"available_stock"`
+	Price              int64  `json:"price"`
+	OriginalPrice      int64  `json:"original_price,omitempty"`
+	IsActive           bool   `json:"is_active"`
 }
 
 type ProductStock struct {
@@ -211,7 +215,9 @@ type ProviderProduct struct {
 	Category      string `json:"category"`
 	ProviderPrice int64  `json:"provider_price"`
 	// Stock status dari KoalaStore: "available" | "out_of_stock" | "manual"
-	Stock string `json:"stock"           gorm:"default:'unknown'"`
+	Stock              string `json:"stock"           gorm:"default:'unknown'"`
+	WarrantyTerms      string `json:"warranty_terms" gorm:"type:text;default:''"`
+	TermsAndConditions string `json:"terms_and_conditions" gorm:"type:text;default:''"`
 	// Jumlah stok real dari KoalaStore (field available_stock dari response API)
 	AvailableStock int       `json:"available_stock" gorm:"default:0"`
 	IsManual       bool      `json:"is_manual"       gorm:"default:false"` // is_manual_process

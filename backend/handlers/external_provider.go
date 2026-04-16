@@ -104,17 +104,19 @@ func SyncProviderProducts(c *gin.Context) {
 			}
 
 			pp := models.ProviderProduct{
-				ProviderID:     provider.ID,
-				ProviderName:   provider.Name,
-				Code:           v.CodeVariant,
-				Name:           normalizeKoalaStoreProductName(p.Name, v.Name),
-				Category:       p.Category,
-				ProviderPrice:  v.Price,
-				Stock:          stock,
-				AvailableStock: v.AvailableStock,
-				IsManual:       v.IsManualProcess,
-				Description:    p.Description,
-				UpdatedAt:      time.Now(),
+				ProviderID:         provider.ID,
+				ProviderName:       provider.Name,
+				Code:               v.CodeVariant,
+				Name:               normalizeKoalaStoreProductName(p.Name, v.Name),
+				Category:           p.Category,
+				ProviderPrice:      v.Price,
+				Stock:              stock,
+				WarrantyTerms:      v.WarrantyTerms,
+				TermsAndConditions: v.TermsAndConditions,
+				AvailableStock:     v.AvailableStock,
+				IsManual:           v.IsManualProcess,
+				Description:        p.Description,
+				UpdatedAt:          time.Now(),
 			}
 
 			if err != nil {
@@ -124,12 +126,14 @@ func SyncProviderProducts(c *gin.Context) {
 			} else {
 				// Update harga & stok
 				database.DB.Model(&existing).Updates(map[string]interface{}{
-					"provider_price":  v.Price,
-					"stock":           stock,
-					"available_stock": v.AvailableStock,
-					"is_manual":       v.IsManualProcess,
-					"name":            pp.Name,
-					"updated_at":      time.Now(),
+					"provider_price":       v.Price,
+					"stock":                stock,
+					"warranty_terms":       v.WarrantyTerms,
+					"terms_and_conditions": v.TermsAndConditions,
+					"available_stock":      v.AvailableStock,
+					"is_manual":            v.IsManualProcess,
+					"name":                 pp.Name,
+					"updated_at":           time.Now(),
 				})
 				updated++
 			}
@@ -236,19 +240,21 @@ func ImportProviderProducts(c *gin.Context) {
 		sellPrice := calcSellPrice(pp.ProviderPrice, body.MarkupType, body.MarkupValue)
 
 		product := models.Product{
-			Name:          pp.Name,
-			Description:   pp.Description,
-			Price:         sellPrice,
-			Category:      pp.Category,
-			Type:          "provider",
-			Icon:          "🎮",
-			Active:        true,
-			ProviderName:  provider.Name,
-			ProviderCode:  pp.Code,
-			ProviderPrice: pp.ProviderPrice,
-			MarkupType:    body.MarkupType,
-			MarkupValue:   body.MarkupValue,
-			AutoSync:      body.AutoSync,
+			Name:               pp.Name,
+			Description:        pp.Description,
+			Price:              sellPrice,
+			Category:           pp.Category,
+			Type:               "provider",
+			Icon:               "🎮",
+			Active:             true,
+			ProviderName:       provider.Name,
+			ProviderCode:       pp.Code,
+			ProviderPrice:      pp.ProviderPrice,
+			WarrantyTerms:      pp.WarrantyTerms,
+			TermsAndConditions: pp.TermsAndConditions,
+			MarkupType:         body.MarkupType,
+			MarkupValue:        body.MarkupValue,
+			AutoSync:           body.AutoSync,
 		}
 		database.DB.Create(&product)
 		imported = append(imported, product)
@@ -282,8 +288,10 @@ func SyncProviderPrices(c *gin.Context) {
 		newPrice := calcSellPrice(pp.ProviderPrice, p.MarkupType, p.MarkupValue)
 		if newPrice != p.Price {
 			database.DB.Model(&p).Updates(map[string]interface{}{
-				"price":          newPrice,
-				"provider_price": pp.ProviderPrice,
+				"price":                newPrice,
+				"provider_price":       pp.ProviderPrice,
+				"warranty_terms":       pp.WarrantyTerms,
+				"terms_and_conditions": pp.TermsAndConditions,
 			})
 			updated++
 		}
@@ -439,11 +447,13 @@ func autoSyncAllProviders() {
 				res := database.DB.Model(&models.ProviderProduct{}).
 					Where("provider_id = ? AND code = ?", p.ID, v.CodeVariant).
 					Updates(map[string]interface{}{
-						"provider_price":  v.Price,
-						"stock":           stock,
-						"available_stock": v.AvailableStock,
-						"is_manual":       v.IsManualProcess,
-						"updated_at":      time.Now(),
+						"provider_price":       v.Price,
+						"stock":                stock,
+						"warranty_terms":       v.WarrantyTerms,
+						"terms_and_conditions": v.TermsAndConditions,
+						"available_stock":      v.AvailableStock,
+						"is_manual":            v.IsManualProcess,
+						"updated_at":           time.Now(),
 					})
 				if res.RowsAffected > 0 {
 					updated++
@@ -463,8 +473,10 @@ func autoSyncAllProviders() {
 			newPrice := calcSellPrice(pp.ProviderPrice, prod.MarkupType, prod.MarkupValue)
 			if newPrice != prod.Price {
 				database.DB.Model(&prod).Updates(map[string]interface{}{
-					"price":          newPrice,
-					"provider_price": pp.ProviderPrice,
+					"price":                newPrice,
+					"provider_price":       pp.ProviderPrice,
+					"warranty_terms":       pp.WarrantyTerms,
+					"terms_and_conditions": pp.TermsAndConditions,
 				})
 			}
 		}

@@ -108,13 +108,13 @@
   })();
 </script>
 
-<svelte:head><title>Pembayaran {invoiceNo} — DigiStore</title></svelte:head>
+<svelte:head><title>Pembayaran {invoiceNo} — Digital Murah</title></svelte:head>
 
 <nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100">
   <div style="max-width:800px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
       <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
-      DigiStore
+      Digital Murah
     </a>
     <span class="mono" style="margin-left:auto;font-size:12px;color:var(--text-muted)">{invoiceNo}</span>
   </div>

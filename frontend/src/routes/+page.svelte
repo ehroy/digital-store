@@ -70,13 +70,13 @@
     : '';
 </script>
 
-<svelte:head><title>DigiStore — Produk Digital</title></svelte:head>
+<svelte:head><title>Digital Murah — Produk Digital</title></svelte:head>
 
 <nav class="store-nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
       <span class="nav-logo">🛍</span>
-      <span>DigiStore</span>
+      <span>Digital Murah</span>
     </a>
     <span class="nav-tag">Digital goods, clean checkout</span>
     <div style="display:flex;gap:8px;margin-left:auto">
@@ -92,7 +92,7 @@
     <div class="hero-orb hero-orb-a"></div>
     <div class="hero-orb hero-orb-b"></div>
     <div class="hero-copy">
-      <div class="hero-kicker">Digital Store</div>
+      <div class="hero-kicker">Digital Murah</div>
       <h1>Belanja produk digital jadi lebih rapi, cepat, dan meyakinkan.</h1>
       <p>Temukan produk, cek status, lalu bayar dengan QRIS tanpa alur yang bertele-tele. Semua dibuat lebih jelas untuk user.</p>
       <div class="hero-actions">
@@ -107,7 +107,7 @@
     </div>
     <div class="hero-aside">
       <div class="aside-label">Pilihan cepat</div>
-      <div class="aside-value">Checkout QRIS</div>
+      <div class="aside-value">Checkout Mudah semua payment dengan QRIS</div>
       <div class="aside-sub">Invoice, status pembayaran, dan komplain semuanya rapi di satu tempat.</div>
       <div class="aside-stats">
         <div>
@@ -192,13 +192,13 @@
 
           {#if product.type === 'provider' && Array.isArray(product.variants) && product.variants.length > 0}
             <div class="variant-badges">
-              {#each product.variants.slice(0, 2) as variant}
+              {#each product.variants.slice(0, 1) as variant}
                 <span class="variant-pill">
                   {variant.variant_name || 'Varian'} · {IDR(variant.price)}
                 </span>
               {/each}
-              {#if product.variants.length > 3}
-                <span class="variant-pill muted">+{product.variants.length - 3} varian</span>
+              {#if product.variants.length > 1}
+                <span class="variant-pill muted">+{product.variants.length - 1} varian</span>
               {/if}
             </div>
           {/if}

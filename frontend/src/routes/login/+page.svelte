@@ -29,13 +29,13 @@
   function handleKey(e) { if (e.key === 'Enter') login(); }
 </script>
 
-<svelte:head><title>Login Admin — DigiStore</title></svelte:head>
+<svelte:head><title>Login Admin — Digital Murah</title></svelte:head>
 
 <div class="login-wrap">
   <div class="login-card">
     <div class="login-brand">
       <span class="login-logo">🛍</span>
-      <span>DigiStore Admin</span>
+      <span>Digital Murah Admin</span>
     </div>
     <h2 class="login-title">Masuk ke Panel Admin</h2>
 

@@ -160,13 +160,13 @@
   $: categories = [...new Set(providerProducts.map(p=>p.category).filter(Boolean))];
 </script>
 
-<svelte:head><title>KoalaStore — DigiStore Admin</title></svelte:head>
+<svelte:head><title>KoalaStore — Digital Murah Admin</title></svelte:head>
 
 <div class="page-header">
   <div>
     <h1 class="page-title">🐨 KoalaStore Provider</h1>
     <p style="font-size:13px;color:var(--text-muted);margin-top:2px">
-      Sync produk dari KoalaStore → import ke toko DigiStore dengan markup otomatis.
+      Sync produk dari KoalaStore → import ke toko Digital Murah dengan markup otomatis.
     </p>
   </div>
   <div style="display:flex;gap:8px">

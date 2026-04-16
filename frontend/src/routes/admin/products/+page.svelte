@@ -219,7 +219,7 @@
   let fileInputRef;
 </script>
 
-<svelte:head><title>Produk — DigiStore Admin</title></svelte:head>
+<svelte:head><title>Produk — Digital Murah Admin</title></svelte:head>
 
 <div class="page-header">
   <h1 class="page-title">Manajemen Produk</h1>

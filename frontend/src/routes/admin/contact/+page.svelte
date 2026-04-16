@@ -32,7 +32,7 @@
     : '';
 </script>
 
-<svelte:head><title>Kontak & Support — DigiStore Admin</title></svelte:head>
+<svelte:head><title>Kontak & Support — Digital Murah Admin</title></svelte:head>
 
 <div class="page-header"><h1 class="page-title">📞 Kontak & Support</h1></div>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem">
@@ -50,7 +50,7 @@
     <div class="form-row-2">
       <div>
         <label class="field-label">Nama Bisnis</label>
-        <input class="input" bind:value={cfg.business_name} placeholder="DigiStore" />
+        <input class="input" bind:value={cfg.business_name} placeholder="Digital Murah" />
       </div>
       <div>
         <label class="field-label">Website</label>
