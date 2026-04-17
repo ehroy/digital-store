@@ -12,6 +12,7 @@
   let error = '';
   let requireEmail = false;
   let qrisDataUrl = '';
+  let credential = '';
 
   $: statusKey = result?.status === 'pending' ? 'waiting_payment' : result?.status;
   $: paymentLink = result?.gateway_redirect_url || result?.gateway_pay_url || '';
@@ -21,21 +22,31 @@
   onMount(() => {
     const no = $page.url.searchParams.get('no');
     const em = $page.url.searchParams.get('email');
+    const cred = $page.url.searchParams.get('cred');
     if (no) invoiceNo = no;
     if (em) email = em;
-    if (no && em) lookup();
+    credential = cred || (no && typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('inv_token_' + no) || ''
+      : '');
+
+    if (!email && credential && credential.includes('@')) {
+      email = credential;
+    }
+
+    if (no && (email || credential)) lookup();
   });
 
   async function lookup() {
     const q = invoiceNo.trim().toUpperCase();
     const em = email.trim().toLowerCase();
+    const cred = em || credential.trim();
     if (!q) { error = 'Masukkan nomor invoice.'; return; }
-    if (!em) { error = 'Masukkan email yang digunakan saat pembelian.'; return; }
-    if (!em.includes('@')) { error = 'Format email tidak valid.'; return; }
+    if (!cred) { error = 'Masukkan email yang digunakan saat pembelian.'; return; }
+    if (em && !em.includes('@')) { error = 'Format email tidak valid.'; return; }
 
     loading = true; error = ''; result = null; requireEmail = false;
     try {
-      result = await api.getInvoice(q, em);
+      result = await api.getInvoice(q, cred);
       await syncQrisPreview(result);
     } catch(e) {
       if (e.message.includes('email')) {
