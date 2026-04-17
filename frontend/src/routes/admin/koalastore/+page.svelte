@@ -26,7 +26,7 @@
 
   // Import config
   let markupType = 'percent';
-  let markupValue = 15;
+  let markupValue = 20;
   let autoSync = true;
 
   // Selected untuk bulk import
@@ -46,7 +46,10 @@
   }
 
   async function selectProvider(p) {
+    console.log(p)
     activeProvider = p;
+    markupType = p.default_markup_type || 'percent';
+    markupValue = p.default_markup_value ?? 20;
     balance = null;
     selectedCodes = new Set();
     selectAll = false;
@@ -112,6 +115,15 @@
     } catch(e) { alert('Gagal: ' + e.message); }
   }
 
+  async function applyDefaultMarkup() {
+    if (!activeProvider) return;
+    try {
+      const r = await api.applyProviderDefaultMarkup(activeProvider.id);
+      alert(`✅ ${r.message}`);
+      await loadProducts(page);
+    } catch(e) { alert('Gagal: ' + e.message); }
+  }
+
   // Toggle select
   function toggleCode(code) {
     const s = new Set(selectedCodes);
@@ -125,7 +137,15 @@
 
   // Provider form
   function openNewProvider() {
-    providerForm = { name:'KoalaStore', type:'koalastore', base_url:'https://koalastore.digital/api/v1', api_key:'', active:true };
+    providerForm = {
+      name:'KoalaStore',
+      type:'koalastore',
+      base_url:'https://koalastore.digital/api/v1',
+      api_key:'',
+      default_markup_type:'percent',
+      default_markup_value:20,
+      active:true,
+    };
     providerError = '';
   }
   async function saveProvider() {
@@ -172,6 +192,9 @@
   <div style="display:flex;gap:8px">
     <button class="btn btn-sm" on:click={syncPrices} title="Update harga semua produk provider dengan auto_sync=true">
       🔄 Sync Semua Harga
+    </button>
+    <button class="btn btn-sm" on:click={applyDefaultMarkup} title="Terapkan default markup provider ke semua produk yang sudah diimport">
+      📈 Terapkan Markup Default
     </button>
     <button class="btn btn-primary" on:click={openNewProvider}>+ Tambah Provider</button>
   </div>
@@ -245,7 +268,8 @@
           </div>
           <div>
             <label class="field-label">Nilai</label>
-            <input class="input" type="number" min="0" bind:value={markupValue} style="font-size:12px;padding:6px 10px"/>
+            <input class="input" type="number" min="0" step="0.1" bind:value={markupValue} style="font-size:12px;padding:6px 10px"/>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Contoh: 15, 20, atau 20.5</div>
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px">
@@ -382,7 +406,7 @@
 
 <!-- Provider form modal -->
 {#if providerForm !== null}
-  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&(providerForm=null)} role="dialog">
+  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&(providerForm=null)} on:keydown={(e)=>e.key==='Escape'&&(providerForm=null)} tabindex="0" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:480px">
       <div class="modal-header">
         <span class="modal-title">{providerForm.id?'Edit Provider':'Tambah Provider KoalaStore'}</span>
@@ -409,6 +433,22 @@
           <input type="checkbox" bind:checked={providerForm.active}/>
           Provider aktif
         </label>
+        <div style="font-size:11.5px;color:var(--text-muted)">
+          Default markup ini dipakai saat import produk baru.
+        </div>
+        <div class="form-row-2" style="gap:10px">
+          <div>
+            <label class="field-label">Default Markup Type</label>
+            <select class="input" bind:value={providerForm.default_markup_type}>
+              <option value="percent">Persen (%)</option>
+              <option value="fixed">Nominal (Rp)</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Default Markup Value</label>
+            <input class="input" type="number" min="0" step="0.1" bind:value={providerForm.default_markup_value} />
+          </div>
+        </div>
         {#if providerError}<div class="alert-error">{providerError}</div>{/if}
         <div style="display:flex;gap:10px;justify-content:flex-end;border-top:0.5px solid var(--border);padding-top:14px">
           <button class="btn" on:click={()=>providerForm=null}>Batal</button>

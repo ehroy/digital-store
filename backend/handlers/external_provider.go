@@ -30,12 +30,38 @@ func GetExternalProviders(c *gin.Context) {
 }
 
 func CreateExternalProvider(c *gin.Context) {
-	var p models.ExternalProvider
-	if err := c.ShouldBindJSON(&p); err != nil {
+	var body struct {
+		Name               string  `json:"name"`
+		Type               string  `json:"type"`
+		BaseURL            string  `json:"base_url"`
+		APIKey             string  `json:"api_key"`
+		Username           string  `json:"username"`
+		DefaultMarkupType  string  `json:"default_markup_type"`
+		DefaultMarkupValue float64 `json:"default_markup_value"`
+		ExtraConfig        string  `json:"extra_config"`
+		Active             bool    `json:"active"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	p.ID = 0
+	if body.DefaultMarkupType == "" {
+		body.DefaultMarkupType = "percent"
+	}
+	if body.DefaultMarkupValue < 0 {
+		body.DefaultMarkupValue = 15
+	}
+	p := models.ExternalProvider{
+		Name:               body.Name,
+		Type:               body.Type,
+		BaseURL:            body.BaseURL,
+		APIKey:             body.APIKey,
+		Username:           body.Username,
+		DefaultMarkupType:  body.DefaultMarkupType,
+		DefaultMarkupValue: body.DefaultMarkupValue,
+		ExtraConfig:        body.ExtraConfig,
+		Active:             body.Active,
+	}
 	database.DB.Create(&p)
 	c.JSON(http.StatusCreated, p)
 }
@@ -58,10 +84,21 @@ func UpdateExternalProvider(c *gin.Context) {
 	if active, ok := body["active"].(bool); ok {
 		p.Active = active
 	}
+	if markupType, ok := body["default_markup_type"].(string); ok && strings.TrimSpace(markupType) != "" {
+		p.DefaultMarkupType = markupType
+	}
+	if markupValue, ok := body["default_markup_value"].(float64); ok {
+		p.DefaultMarkupValue = markupValue
+	}
 	if ec, ok := body["extra_config"].(string); ok {
 		p.ExtraConfig = ec
 	}
 	database.DB.Save(&p)
+	if _, hasMarkupType := body["default_markup_type"]; hasMarkupType {
+		applyProviderDefaultMarkupToProducts(&p)
+	} else if _, hasMarkupValue := body["default_markup_value"]; hasMarkupValue {
+		applyProviderDefaultMarkupToProducts(&p)
+	}
 	c.JSON(http.StatusOK, p)
 }
 
@@ -240,21 +277,22 @@ func ImportProviderProducts(c *gin.Context) {
 		sellPrice := calcSellPrice(pp.ProviderPrice, body.MarkupType, body.MarkupValue)
 
 		product := models.Product{
-			Name:               pp.Name,
-			Description:        pp.Description,
-			Price:              sellPrice,
-			Category:           pp.Category,
-			Type:               "provider",
-			Icon:               "🎮",
-			Active:             true,
-			ProviderName:       provider.Name,
-			ProviderCode:       pp.Code,
-			ProviderPrice:      pp.ProviderPrice,
-			WarrantyTerms:      pp.WarrantyTerms,
-			TermsAndConditions: pp.TermsAndConditions,
-			MarkupType:         body.MarkupType,
-			MarkupValue:        body.MarkupValue,
-			AutoSync:           body.AutoSync,
+			Name:                     pp.Name,
+			Description:              pp.Description,
+			Price:                    sellPrice,
+			Category:                 pp.Category,
+			Type:                     "provider",
+			Icon:                     "🎮",
+			Active:                   true,
+			ProviderName:             provider.Name,
+			ProviderCode:             pp.Code,
+			ProviderPrice:            pp.ProviderPrice,
+			WarrantyTerms:            pp.WarrantyTerms,
+			TermsAndConditions:       pp.TermsAndConditions,
+			MarkupType:               body.MarkupType,
+			MarkupValue:              body.MarkupValue,
+			UseProviderDefaultMarkup: true,
+			AutoSync:                 body.AutoSync,
 		}
 		database.DB.Create(&product)
 		imported = append(imported, product)
@@ -274,9 +312,9 @@ func ImportProviderProducts(c *gin.Context) {
 
 // POST /api/admin/external-providers/sync-prices — update harga semua produk provider
 func SyncProviderPrices(c *gin.Context) {
-	// Ambil semua produk tipe provider dengan auto_sync = true
+	// Manual sync: update semua produk provider, tanpa tergantung auto_sync.
 	var products []models.Product
-	database.DB.Where("type = ? AND auto_sync = ?", "provider", true).Find(&products)
+	database.DB.Where("type = ?", "provider").Find(&products)
 
 	updated := 0
 	for _, p := range products {
@@ -285,14 +323,29 @@ func SyncProviderPrices(c *gin.Context) {
 		if err := database.DB.Where("provider_name = ? AND code = ?", p.ProviderName, p.ProviderCode).First(&pp).Error; err != nil {
 			continue
 		}
-		newPrice := calcSellPrice(pp.ProviderPrice, p.MarkupType, p.MarkupValue)
-		if newPrice != p.Price {
-			database.DB.Model(&p).Updates(map[string]interface{}{
-				"price":                newPrice,
-				"provider_price":       pp.ProviderPrice,
-				"warranty_terms":       pp.WarrantyTerms,
-				"terms_and_conditions": pp.TermsAndConditions,
-			})
+		var provider models.ExternalProvider
+		if err := database.DB.Where("name = ?", p.ProviderName).First(&provider).Error; err != nil {
+			continue
+		}
+		markupType := provider.DefaultMarkupType
+		if strings.TrimSpace(markupType) == "" {
+			markupType = "percent"
+		}
+		markupValue := provider.DefaultMarkupValue
+		if markupValue < 0 {
+			markupValue = 15
+		}
+		newPrice := calcSellPrice(pp.ProviderPrice, markupType, markupValue)
+		database.DB.Model(&p).Updates(map[string]interface{}{
+			"price":                       newPrice,
+			"provider_price":              pp.ProviderPrice,
+			"warranty_terms":              pp.WarrantyTerms,
+			"terms_and_conditions":        pp.TermsAndConditions,
+			"markup_type":                 markupType,
+			"markup_value":                markupValue,
+			"use_provider_default_markup": true,
+		})
+		if newPrice != p.Price || p.MarkupType != markupType || p.MarkupValue != markupValue || !p.UseProviderDefaultMarkup {
 			updated++
 		}
 	}
@@ -301,6 +354,54 @@ func SyncProviderPrices(c *gin.Context) {
 		"message": fmt.Sprintf("%d harga produk diperbarui", updated),
 		"updated": updated,
 	})
+}
+
+// POST /api/admin/external-providers/:id/apply-default-markup
+func ApplyProviderDefaultMarkup(c *gin.Context) {
+	var provider models.ExternalProvider
+	if err := database.DB.First(&provider, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider tidak ditemukan"})
+		return
+	}
+	updated := applyProviderDefaultMarkupToProducts(&provider)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("%d produk mengikuti default markup provider", updated),
+		"updated": updated,
+	})
+}
+
+func applyProviderDefaultMarkupToProducts(provider *models.ExternalProvider) int {
+	markupType := provider.DefaultMarkupType
+	if strings.TrimSpace(markupType) == "" {
+		markupType = "percent"
+	}
+	markupValue := provider.DefaultMarkupValue
+	if markupValue < 0 {
+		markupValue = 15
+	}
+
+	var products []models.Product
+	database.DB.Where("type = ? AND provider_name = ? AND use_provider_default_markup = ?", "provider", provider.Name, true).Find(&products)
+
+	updated := 0
+	for _, p := range products {
+		var pp models.ProviderProduct
+		if err := database.DB.Where("provider_name = ? AND code = ?", p.ProviderName, p.ProviderCode).First(&pp).Error; err != nil {
+			continue
+		}
+		newPrice := calcSellPrice(pp.ProviderPrice, markupType, markupValue)
+		database.DB.Model(&p).Updates(map[string]interface{}{
+			"markup_type":          markupType,
+			"markup_value":         markupValue,
+			"price":                newPrice,
+			"provider_price":       pp.ProviderPrice,
+			"warranty_terms":       pp.WarrantyTerms,
+			"terms_and_conditions": pp.TermsAndConditions,
+		})
+		updated++
+	}
+	return updated
 }
 
 // ── Order ke KoalaStore saat ada pembelian ────────────────────────────────────
@@ -367,7 +468,7 @@ func OrderFromKoalaStore(order *models.Order, product *models.Product) ([]string
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func calcSellPrice(basePrice int64, markupType string, markupValue float64) int64 {
-	if markupValue <= 0 {
+	if markupValue < 0 {
 		return basePrice
 	}
 	switch markupType {
@@ -377,6 +478,30 @@ func calcSellPrice(basePrice int64, markupType string, markupValue float64) int6
 		return basePrice + int64(markupValue)
 	}
 	return basePrice
+}
+
+func effectiveMarkupForProduct(product models.Product, provider *models.ExternalProvider) (string, float64) {
+	if product.UseProviderDefaultMarkup && provider != nil {
+		markupType := strings.TrimSpace(provider.DefaultMarkupType)
+		if markupType == "" {
+			markupType = "percent"
+		}
+		markupValue := provider.DefaultMarkupValue
+		if markupValue < 0 {
+			markupValue = 15
+		}
+		return markupType, markupValue
+	}
+
+	markupType := strings.TrimSpace(product.MarkupType)
+	if markupType == "" {
+		markupType = "percent"
+	}
+	markupValue := product.MarkupValue
+	if markupValue < 0 {
+		markupValue = 15
+	}
+	return markupType, markupValue
 }
 
 func containsAsterisks(s string) bool {
@@ -401,16 +526,16 @@ func normalizeKoalaStoreProductName(productName, variantName string) string {
 }
 
 // ── Auto Stock Sync Job ───────────────────────────────────────────────────────
-// Berjalan di background setiap 15 menit — sync stok semua provider aktif
+// Berjalan di background setiap 30 menit — sync stok semua provider aktif
 // Mencegah pembeli order produk yang stoknya habis di KoalaStore
 
 func StartProviderSyncJob() {
 	go func() {
 		// Delay 30 detik setelah startup baru mulai
 		time.Sleep(30 * time.Second)
-		ticker := time.NewTicker(120 * time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
-		log.Println("🔄 Provider stock sync job dimulai — interval 15 menit")
+		log.Println("🔄 Provider stock sync job dimulai — interval 30 menit")
 		// Sync pertama kali
 		autoSyncAllProviders()
 		for range ticker.C {
@@ -470,7 +595,8 @@ func autoSyncAllProviders() {
 			if err := database.DB.Where("provider_name = ? AND code = ?", prod.ProviderName, prod.ProviderCode).First(&pp).Error; err != nil {
 				continue
 			}
-			newPrice := calcSellPrice(pp.ProviderPrice, prod.MarkupType, prod.MarkupValue)
+			markupType, markupValue := effectiveMarkupForProduct(prod, &p)
+			newPrice := calcSellPrice(pp.ProviderPrice, markupType, markupValue)
 			if newPrice != prod.Price {
 				database.DB.Model(&prod).Updates(map[string]interface{}{
 					"price":                newPrice,

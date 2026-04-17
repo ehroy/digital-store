@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { api } from '$lib/api.js';
   import { IDR } from '$lib/utils.js';
   import BuyModal from './BuyModal.svelte';
@@ -8,30 +8,84 @@
 
   let products = [];
   let loading = true;
+  let loadingMore = false;
+  let hasMore = false;
+  let totalProducts = 0;
+  let page = 1;
+  let perPage = 10;
   let search = '';
   let activeCategory = 'all';
   let categories = ['all'];
   let contact = null;
+  let loadMoreSentinel;
+  let observer;
+  let searchTimer;
+  let querySeq = 0;
 
   let buyProduct = null;
   let checkoutData = null;
   let invoiceOrder = null;
 
+  function buildQuery(nextPage) {
+    const params = new URLSearchParams();
+    params.set('sort', 'populer');
+    params.set('page', String(nextPage));
+    params.set('per_page', String(perPage));
+    if (search.trim()) params.set('search', search.trim());
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    return `?${params.toString()}`;
+  }
+
+  async function loadPage(nextPage = 1, replace = true) {
+    const seq = ++querySeq;
+    if (replace) loading = true;
+    else loadingMore = true;
+    try {
+      const res = await api.getProducts(buildQuery(nextPage));
+      if (seq !== querySeq) return;
+      const items = Array.isArray(res) ? res : (res.items || []);
+      if (replace) products = items;
+      else products = [...products, ...items];
+      page = Array.isArray(res) ? 1 : (res.page || nextPage);
+      totalProducts = Array.isArray(res) ? items.length : (res.total || items.length);
+      hasMore = Array.isArray(res) ? false : page < (res.total_pages || 1) && items.length > 0;
+      if (replace && categories.length === 1 && Array.isArray(res) === false && Array.isArray(res.categories) && res.categories.length > 0) {
+        categories = ['all', ...res.categories];
+      }
+    } finally {
+      loading = false;
+      loadingMore = false;
+    }
+  }
+
+  function resetAndLoad() {
+    loadPage(1, true);
+  }
+
+  function scheduleReload() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => resetAndLoad(), 250);
+  }
+
   onMount(async () => {
     api.getContact().then(c => contact = c).catch(() => {});
     try {
-      products = await api.getProducts();
-      const cats = [...new Set(products.map(p => p.category))];
-      categories = ['all', ...cats];
+      await loadPage(1, true);
+      observer = new IntersectionObserver((entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !loadingMore) {
+          loadPage(page + 1, false);
+        }
+      }, { rootMargin: '280px 0px' });
+      if (loadMoreSentinel) observer.observe(loadMoreSentinel);
     } finally { loading = false; }
   });
 
-  $: filtered = products.filter(p => {
-    const matchCat = activeCategory === 'all' || p.category === activeCategory;
-    const q = search.toLowerCase();
-    const matchSearch = p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q);
-    return matchCat && matchSearch;
+  onDestroy(() => {
+    clearTimeout(searchTimer);
+    observer?.disconnect();
   });
+
+  $: filtered = products;
 
   // Status stok untuk setiap produk
   function stockInfo(p) {
@@ -49,11 +103,11 @@
         if (availableVariants.length === 0) {
           return { label: 'Habis', color: '#8c2626', canBuy: false };
         }
-        return { label: `${variants.length} varian`, color: '#2f5e0f', canBuy: true, stock: totalStock };
+        return { label: `${availableVariants.length} varian aktif`, color: '#2f5e0f', canBuy: true, stock: totalStock };
       }
       switch (p.provider_status) {
         case 'available':
-          return { label: '1 varian', color: '#2f5e0f', canBuy: true, stock: p.provider_stock ?? 0 };
+          return { label: 'Tersedia', color: '#2f5e0f', canBuy: true, stock: p.provider_stock ?? 0 };
         case 'out_of_stock':
           return { label: 'Habis di Provider', color: '#8c2626', canBuy: false };
         case 'manual':
@@ -129,11 +183,11 @@
 
 <div class="store-container" id="produk">
   <div class="filter-row">
-    <input class="input" placeholder="🔍  Cari produk..." bind:value={search} />
+    <input class="input" placeholder="🔍  Cari produk..." bind:value={search} on:input={scheduleReload} />
     <div class="cat-pills">
       {#each categories as cat}
         <button class="btn btn-sm {activeCategory===cat?'btn-primary':''}"
-          on:click={() => activeCategory = cat}>
+          on:click={() => { activeCategory = cat; resetAndLoad(); }}>
           {cat === 'all' ? 'Semua' : cat}
         </button>
       {/each}
@@ -146,9 +200,9 @@
     <div class="empty-state">Produk tidak ditemukan.</div>
   {:else}
     <div class="product-grid">
-      {#each filtered as product (product.id)}
+      {#each filtered as product, index (product.id)}
         {@const stock = stockInfo(product)}
-        <div class="product-card {!stock.canBuy?'out-of-stock':''}">
+        <div class="product-card {!stock.canBuy?'out-of-stock':''}" style="animation-delay:{Math.min(index % perPage, 9) * 18}ms">
           {#if product.image_url}
             <div class="product-img-wrap">
               <img src={product.image_url} alt={product.name} class="product-img" loading="lazy" />
@@ -160,9 +214,12 @@
           <div class="product-body">
             <div style="margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap">
               <span class="badge badge-stock">{product.category}</span>
-              {#if product.type === 'provider'}
-         
-              {:else if product.type === 'script'}
+              {#if product.is_popular}
+                <span class="badge" style="background:#FFF7ED;color:#B45309">Terlaris</span>
+              {/if}
+        
+            
+              {#if product.type === 'script'}
                 <span class="badge" style="background:#EEEDFE;color:#534AB7">Jasa</span>
               {/if}
             </div>
@@ -182,7 +239,7 @@
                 {IDR(product.price)}
               {/if}
             </div>
-            <div class="stock-badge" style="color:{stock.color}">
+            <div class="stock-badge" style="color:{stock.color};font-weight:600">
               {#if product.type === 'provider' && product.provider_status === 'available'}
                 <span class="stock-dot" style="background:{stock.color}"></span>
               {/if}
@@ -216,6 +273,20 @@
         </div>
       {/each}
     </div>
+    <div bind:this={loadMoreSentinel} style="height:1px"></div>
+    <div class="load-more-meta">
+      <span>{products.length} dari {totalProducts} produk</span>
+      {#if hasMore}
+        <button class="btn btn-sm" on:click={() => loadPage(page + 1, false)} disabled={loadingMore}>
+          {loadingMore ? 'Memuat…' : 'Muat 10 lagi'}
+        </button>
+      {/if}
+    </div>
+    {#if loadingMore}
+      <div class="load-more-state">Memuat produk berikutnya…</div>
+    {:else if hasMore}
+      <div class="load-more-state muted">Scroll untuk memuat produk berikutnya</div>
+    {/if}
   {/if}
 
   <div class="store-footer">
@@ -293,8 +364,8 @@
 .filter-row .input { flex:1;min-width:200px; }
 .cat-pills { display:flex;gap:6px;flex-wrap:wrap; }
 .product-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px; }
-.product-card { background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:transform 0.2s, box-shadow 0.2s, border-color 0.2s; box-shadow:0 10px 26px rgba(15,23,42,0.05); }
-.product-card:hover:not(.out-of-stock) { box-shadow:0 18px 40px rgba(15,23,42,0.10); transform:translateY(-2px); border-color:rgba(21,93,252,0.15); }
+.product-card { background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms cubic-bezier(.2,.8,.2,1); box-shadow:0 10px 26px rgba(15,23,42,0.05); will-change: transform; animation: card-enter 320ms cubic-bezier(.2,.8,.2,1) both; }
+.product-card:hover:not(.out-of-stock) { box-shadow:0 18px 40px rgba(15,23,42,0.10); transform:translateY(-4px) scale(1.012); border-color:rgba(21,93,252,0.15); animation: card-bounce 320ms ease-out; }
 .out-of-stock { opacity:0.7; }
 .product-img-wrap { border-radius:18px;overflow:hidden;background:#f8fafc;aspect-ratio:16/16; border:1px solid var(--border); }
 .product-img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s; }
@@ -311,6 +382,27 @@
 .variant-pill { font-size:11px;padding:4px 8px;border-radius:999px;background:#f4f7fb;color:#345; border:0.5px solid var(--border); }
 .variant-pill.muted { color:var(--text-muted); }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes card-bounce {
+  0% { transform: translateY(0) scale(1); }
+  55% { transform: translateY(-6px) scale(1.02); }
+  100% { transform: translateY(-4px) scale(1.012); }
+}
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.load-more-state { text-align:center;padding:1rem 0 0;color:#0d5fa8;font-size:13px; }
+.load-more-state.muted { color:var(--text-muted); }
+.load-more-meta {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:12px;
+  color:var(--text-muted);
+  font-size:12.5px;
+  flex-wrap:wrap;
+}
 .empty-state { text-align:center;padding:3rem;color:var(--text-muted); }
 .store-footer { text-align:center;padding:2rem 0 0;font-size:13px;color:var(--text-muted); }
 .wa-float {

@@ -55,6 +55,7 @@ func main() {
 			adm.GET("/products", handlers.GetProducts)
 			adm.POST("/products", handlers.CreateProduct)
 			adm.PUT("/products/:id", handlers.UpdateProduct)
+			adm.POST("/products/bulk", handlers.BulkProducts)
 			adm.DELETE("/products/:id", handlers.DeleteProduct)
 			adm.PATCH("/products/:id/toggle", handlers.ToggleProduct)
 			adm.POST("/products/:id/image", handlers.UploadProductImage)
@@ -87,6 +88,7 @@ func main() {
 			adm.GET("/external-providers/:id/products", handlers.GetProviderProducts)
 			adm.GET("/external-providers/:id/balance", handlers.GetProviderBalance)
 			adm.POST("/external-providers/:id/import", handlers.ImportProviderProducts)
+			adm.POST("/external-providers/:id/apply-default-markup", handlers.ApplyProviderDefaultMarkup)
 			adm.POST("/external-providers/sync-prices", handlers.SyncProviderPrices)
 
 			// Stock providers (pull log)

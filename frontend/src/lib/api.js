@@ -61,6 +61,7 @@ export const api = {
   adminProducts: (qs = '') => req('GET', `/products?admin=1${qs}`, null, true),
   createProduct: (body) => req('POST', '/products', body, true),
   updateProduct: (id, body) => req('PUT', `/products/${id}`, body, true),
+  bulkProducts: (body) => req('POST', '/products/bulk', body, true),
   deleteProduct: (id) => req('DELETE', `/products/${id}`, null, true),
   toggleProduct: (id) => req('PATCH', `/products/${id}/toggle`, null, true),
 
@@ -93,6 +94,7 @@ export const api = {
   getExtProviderProducts: (id, qs='') => req('GET', `/external-providers/${id}/products${qs}`, null, true),
   getExtProviderBalance: (id) => req('GET', `/external-providers/${id}/balance`, null, true),
   importProviderProducts: (id, body) => req('POST', `/external-providers/${id}/import`, body, true),
+  applyProviderDefaultMarkup: (id) => req('POST', `/external-providers/${id}/apply-default-markup`, null, true),
   syncProviderPrices: () => req('POST', '/external-providers/sync-prices', null, true),
 
   // Admin - stock providers

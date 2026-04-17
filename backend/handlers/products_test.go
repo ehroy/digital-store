@@ -76,6 +76,21 @@ func TestSortPublicCatalogByTerlaris(t *testing.T) {
 	}
 }
 
+func TestSortPublicCatalogHonorsPopularFlag(t *testing.T) {
+	products := normalizePublicCatalog([]models.Product{
+		{ID: 1, Name: "Template A", Type: "stock", Price: 25000, CreatedAt: testTime(1), UpdatedAt: testTime(1)},
+		{ID: 2, Name: "Netflix — Sharing 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 50000, ProviderStatus: "available", CreatedAt: testTime(2), UpdatedAt: testTime(2)},
+		{ID: 3, Name: "Spotify — Family 1 Bulan", Type: "provider", ProviderName: "KoalaStore", Price: 30000, ProviderStatus: "manual", IsPopular: true, CreatedAt: testTime(3), UpdatedAt: testTime(3)},
+	})
+	result := sortPublicCatalog(products, "terlaris", map[uint]int64{1: 0, 2: 10, 3: 1}, map[string]int64{"netflix": 10, "spotify": 1})
+	if result[0].Name != "Spotify" {
+		t.Fatalf("expected popular product first, got %s", result[0].Name)
+	}
+	if result[0].IsPopular != true {
+		t.Fatalf("expected popular flag preserved, got %+v", result[0])
+	}
+}
+
 func TestApplyProductWarrantyDefaults(t *testing.T) {
 	stock := models.Product{Type: "stock"}
 	applyProductWarrantyDefaults(&stock)

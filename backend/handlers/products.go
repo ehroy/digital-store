@@ -5,9 +5,11 @@ import (
 	"digistore/models"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func GetProducts(c *gin.Context) {
@@ -19,6 +21,77 @@ func GetProducts(c *gin.Context) {
 	if cat := c.Query("category"); cat != "" {
 		query = query.Where("category = ?", cat)
 	}
+	if s := strings.TrimSpace(c.Query("search")); s != "" {
+		like := "%" + s + "%"
+		query = query.Where("name LIKE ? OR description LIKE ?", like, like)
+	}
+	if typ := strings.TrimSpace(c.Query("type")); typ != "" && typ != "all" {
+		query = query.Where("type = ?", typ)
+	}
+	if active := strings.TrimSpace(c.Query("active")); active != "" && active != "all" {
+		switch active {
+		case "true", "1", "active":
+			query = query.Where("active = ?", true)
+		case "false", "0", "inactive":
+			query = query.Where("active = ?", false)
+		}
+	}
+	if popular := strings.TrimSpace(c.Query("popular")); popular != "" && popular != "all" {
+		switch popular {
+		case "true", "1", "popular":
+			query = query.Where("is_popular = ?", true)
+		case "false", "0", "regular":
+			query = query.Where("is_popular = ?", false)
+		}
+	}
+
+	if c.Query("admin") == "1" {
+		page := parsePositiveQueryInt(c.Query("page"), 1)
+		perPage := parsePositiveQueryInt(c.Query("per_page"), 10)
+		if perPage > 100 {
+			perPage = 100
+		}
+		sortMode := strings.ToLower(strings.TrimSpace(c.Query("sort")))
+		if sortMode == "" {
+			sortMode = "terbaru"
+		}
+
+		var total int64
+		if err := query.Model(&models.Product{}).Count(&total).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal memuat produk"})
+			return
+		}
+
+		query = applyProductSort(query, sortMode)
+		if err := query.Offset((page - 1) * perPage).Limit(perPage).Find(&products).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal memuat produk"})
+			return
+		}
+
+		for i := range products {
+			populateProductAvailability(&products[i])
+			applyProductWarrantyDefaults(&products[i])
+		}
+
+		pages := int(total) / perPage
+		if int(total)%perPage != 0 {
+			pages++
+		}
+		if pages == 0 {
+			pages = 1
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"items":       products,
+			"total":       total,
+			"page":        page,
+			"per_page":    perPage,
+			"total_pages": pages,
+			"sort":        sortMode,
+		})
+		return
+	}
+
 	query.Find(&products)
 
 	for i := range products {
@@ -35,6 +108,70 @@ func GetProducts(c *gin.Context) {
 
 	for i := range products {
 		applyProductWarrantyDefaults(&products[i])
+	}
+
+	var publicCategories []string
+	if c.Query("admin") != "1" {
+		_ = database.DB.Model(&models.Product{}).
+			Where("active = ?", true).
+			Distinct("category").
+			Order("category ASC").
+			Pluck("category", &publicCategories).Error
+	}
+
+	if page := parsePositiveQueryInt(c.Query("page"), 0); page > 0 {
+		perPage := parsePositiveQueryInt(c.Query("per_page"), 10)
+		if perPage > 100 {
+			perPage = 100
+		}
+
+		var categories []string
+		seenCategories := make(map[string]struct{})
+		for _, p := range products {
+			cat := strings.TrimSpace(p.Category)
+			if cat == "" {
+				continue
+			}
+			if _, ok := seenCategories[cat]; ok {
+				continue
+			}
+			seenCategories[cat] = struct{}{}
+			categories = append(categories, cat)
+		}
+
+		total := len(products)
+		start := (page - 1) * perPage
+		if start > total {
+			start = total
+		}
+		end := start + perPage
+		if end > total {
+			end = total
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"items":    products[start:end],
+			"total":    total,
+			"page":     page,
+			"per_page": perPage,
+			"total_pages": func() int {
+				pages := total / perPage
+				if total%perPage != 0 {
+					pages++
+				}
+				if pages == 0 {
+					return 1
+				}
+				return pages
+			}(),
+			"categories": publicCategories,
+		})
+		return
+	}
+
+	if c.Query("admin") != "1" {
+		c.JSON(http.StatusOK, gin.H{"items": products, "categories": publicCategories})
+		return
 	}
 
 	c.JSON(http.StatusOK, products)
@@ -61,6 +198,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 	applyProductWarrantyDefaults(&p)
+	applyProviderPricing(&p)
 	p.ID = 0
 	database.DB.Create(&p)
 	c.JSON(http.StatusCreated, p)
@@ -77,6 +215,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 	applyProductWarrantyDefaults(&p)
+	applyProviderPricing(&p)
 	database.DB.Save(&p)
 	c.JSON(http.StatusOK, p)
 }
@@ -95,6 +234,88 @@ func ToggleProduct(c *gin.Context) {
 	p.Active = !p.Active
 	database.DB.Save(&p)
 	c.JSON(http.StatusOK, p)
+}
+
+func BulkProducts(c *gin.Context) {
+	var body struct {
+		IDs                      []uint  `json:"ids" binding:"required,min=1"`
+		Action                   string  `json:"action" binding:"required"`
+		MarkupType               string  `json:"markup_type"`
+		MarkupValue              float64 `json:"markup_value"`
+		UseProviderDefaultMarkup *bool   `json:"use_provider_default_markup"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ids := uniqueUintIDs(body.IDs)
+	if len(ids) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tidak ada produk yang dipilih"})
+		return
+	}
+
+	action := strings.ToLower(strings.TrimSpace(body.Action))
+	if action == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "aksi bulk wajib diisi"})
+		return
+	}
+
+	updatedCount := 0
+	deletedCount := 0
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		switch action {
+		case "delete":
+			res := tx.Delete(&models.Product{}, ids)
+			if res.Error != nil {
+				return res.Error
+			}
+			deletedCount = int(res.RowsAffected)
+		case "activate", "deactivate", "toggle_active":
+			active := true
+			if action == "deactivate" {
+				active = false
+			}
+			res := tx.Model(&models.Product{}).Where("id IN ?", ids).Update("active", active)
+			if res.Error != nil {
+				return res.Error
+			}
+			updatedCount = int(res.RowsAffected)
+		case "set_markup":
+			markupType := normalizeMarkupType(body.MarkupType)
+			markupValue := body.MarkupValue
+			for _, id := range ids {
+				var p models.Product
+				if err := tx.First(&p, id).Error; err != nil {
+					continue
+				}
+				if p.Type != "provider" {
+					continue
+				}
+				p.MarkupType = markupType
+				p.MarkupValue = markupValue
+				p.UseProviderDefaultMarkup = false
+				applyProviderPricing(&p)
+				if err := tx.Save(&p).Error; err != nil {
+					return err
+				}
+				updatedCount++
+			}
+		default:
+			return gorm.ErrInvalidData
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "gagal memproses bulk action"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Aksi bulk berhasil diproses",
+		"updated": updatedCount,
+		"deleted": deletedCount,
+	})
 }
 
 func populateProductAvailability(p *models.Product) {
@@ -120,6 +341,59 @@ func populateProductAvailability(p *models.Product) {
 			p.AvailableStock = 0
 		}
 	}
+}
+
+func applyProviderPricing(p *models.Product) {
+	if p.Type != "provider" {
+		return
+	}
+
+	p.MarkupType = normalizeMarkupType(p.MarkupType)
+	if p.UseProviderDefaultMarkup {
+		var provider models.ExternalProvider
+		if err := database.DB.Where("name = ?", p.ProviderName).First(&provider).Error; err == nil {
+			markupType := normalizeMarkupType(provider.DefaultMarkupType)
+			markupValue := provider.DefaultMarkupValue
+			if markupValue < 0 {
+				markupValue = 15
+			}
+			p.MarkupType = markupType
+			p.MarkupValue = markupValue
+			p.Price = calcSellPrice(p.ProviderPrice, markupType, markupValue)
+			return
+		}
+	}
+
+	if p.MarkupValue < 0 {
+		p.MarkupValue = 0
+	}
+	p.Price = calcSellPrice(p.ProviderPrice, p.MarkupType, p.MarkupValue)
+}
+
+func normalizeMarkupType(raw string) string {
+	markupType := strings.ToLower(strings.TrimSpace(raw))
+	switch markupType {
+	case "fixed":
+		return "fixed"
+	default:
+		return "percent"
+	}
+}
+
+func uniqueUintIDs(ids []uint) []uint {
+	seen := make(map[uint]struct{}, len(ids))
+	result := make([]uint, 0, len(ids))
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	return result
 }
 
 func normalizePublicCatalog(products []models.Product) []models.Product {
@@ -182,6 +456,19 @@ func sortPublicCatalog(products []models.Product, sortMode string, productCounts
 	return products
 }
 
+func applyProductSort(query *gorm.DB, sortMode string) *gorm.DB {
+	switch sortMode {
+	case "terlaris", "terpopuler", "popular", "best_seller", "bestseller":
+		return query.Order("is_popular desc").Order("updated_at desc").Order("id desc")
+	case "termurah", "cheapest", "price_asc":
+		return query.Order("price asc").Order("updated_at desc").Order("id desc")
+	case "terbaru", "newest", "latest":
+		return query.Order("updated_at desc").Order("created_at desc").Order("id desc")
+	default:
+		return query.Order("created_at desc").Order("updated_at desc").Order("id desc")
+	}
+}
+
 type catalogSortInfo struct {
 	primary   int64
 	secondary int64
@@ -191,8 +478,8 @@ func catalogSortValue(p models.Product, sortMode string, productCounts map[uint]
 	switch sortMode {
 	case "terlaris", "terpopuler", "popular", "best_seller", "bestseller":
 		return catalogSortInfo{
-			primary:   catalogSalesCount(p, productCounts, familyCounts),
-			secondary: p.Price,
+			primary:   boolToSortValue(p.IsPopular),
+			secondary: catalogSalesCount(p, productCounts, familyCounts),
 		}
 	case "termurah", "cheapest", "price_asc":
 		return catalogSortInfo{
@@ -210,6 +497,13 @@ func catalogSortValue(p models.Product, sortMode string, productCounts map[uint]
 			secondary: p.UpdatedAt.Unix(),
 		}
 	}
+}
+
+func boolToSortValue(v bool) int64 {
+	if v {
+		return 1
+	}
+	return 0
 }
 
 func catalogSalesCount(p models.Product, productCounts map[uint]int64, familyCounts map[string]int64) int64 {
@@ -332,6 +626,12 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 	best.ImageURL = providerGroupImageURL(products, best)
 	best.Price = minPrice
 	best.Variants = variants
+	for _, p := range products {
+		if p.IsPopular {
+			best.IsPopular = true
+			break
+		}
+	}
 	best.ProviderStatus = providerCatalogStatus(variants)
 	best.ProviderStock = totalStock
 	best.AvailableStock = totalStock
@@ -396,6 +696,14 @@ func providerVariantName(name string) string {
 		}
 	}
 	return ""
+}
+
+func parsePositiveQueryInt(raw string, fallback int) int {
+	v, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || v < 1 {
+		return fallback
+	}
+	return v
 }
 
 func providerDurationName(name string) string {

@@ -11,6 +11,7 @@ type Product struct {
 	Type               string           `json:"type"            gorm:"not null;default:'stock'"`
 	Icon               string           `json:"icon"            gorm:"default:'📦'"`
 	Active             bool             `json:"active"          gorm:"default:true"`
+	IsPopular          bool             `json:"is_popular"      gorm:"default:false"`
 	ImageURL           string           `json:"image_url"       gorm:"default:''"`
 	Script             string           `json:"script"          gorm:"type:text"`
 	WarrantyTerms      string           `json:"warranty_terms"   gorm:"type:text;default:''"`
@@ -23,14 +24,15 @@ type Product struct {
 
 	// Provider product fields — diisi jika Type = "provider"
 	// Produk diambil dari API provider eksternal (mis: KoalaStore)
-	ProviderName  string    `json:"provider_name"   gorm:"default:''"`        // nama provider
-	ProviderCode  string    `json:"provider_code"   gorm:"default:''"`        // kode produk di provider
-	ProviderPrice int64     `json:"provider_price"  gorm:"default:0"`         // harga beli dari provider
-	MarkupType    string    `json:"markup_type"     gorm:"default:'percent'"` // "percent" | "fixed"
-	MarkupValue   float64   `json:"markup_value"    gorm:"default:0"`         // persen atau nominal
-	AutoSync      bool      `json:"auto_sync"       gorm:"default:false"`     // sync harga otomatis
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ProviderName             string    `json:"provider_name"   gorm:"default:''"`        // nama provider
+	ProviderCode             string    `json:"provider_code"   gorm:"default:''"`        // kode produk di provider
+	ProviderPrice            int64     `json:"provider_price"  gorm:"default:0"`         // harga beli dari provider
+	MarkupType               string    `json:"markup_type"     gorm:"default:'percent'"` // "percent" | "fixed"
+	MarkupValue              float64   `json:"markup_value"    gorm:"default:0"`         // persen atau nominal
+	UseProviderDefaultMarkup bool      `json:"use_provider_default_markup" gorm:"default:true"`
+	AutoSync                 bool      `json:"auto_sync"       gorm:"default:false"` // sync harga otomatis
+	CreatedAt                time.Time `json:"created_at"`
+	UpdatedAt                time.Time `json:"updated_at"`
 }
 
 type CatalogVariant struct {
@@ -190,14 +192,16 @@ type PullLog struct {
 // Satu provider bisa menyuplai banyak produk.
 
 type ExternalProvider struct {
-	ID          uint   `json:"id"           gorm:"primaryKey;autoIncrement"`
-	Name        string `json:"name"         gorm:"not null"`   // "KoalaStore", "DigiFlazz", dll
-	Type        string `json:"type"         gorm:"not null"`   // "koalastore" | "digiflazz" | "generic"
-	BaseURL     string `json:"base_url"     gorm:"not null"`   // https://koalastore.digital/api
-	APIKey      string `json:"api_key"      gorm:"type:text"`  // API key / token
-	Username    string `json:"username"     gorm:"default:''"` // jika butuh username
-	ExtraConfig string `json:"extra_config" gorm:"type:text"`  // JSON config tambahan
-	Active      bool   `json:"active"       gorm:"default:true"`
+	ID                 uint    `json:"id"           gorm:"primaryKey;autoIncrement"`
+	Name               string  `json:"name"         gorm:"not null"`   // "KoalaStore", "DigiFlazz", dll
+	Type               string  `json:"type"         gorm:"not null"`   // "koalastore" | "digiflazz" | "generic"
+	BaseURL            string  `json:"base_url"     gorm:"not null"`   // https://koalastore.digital/api
+	APIKey             string  `json:"api_key"      gorm:"type:text"`  // API key / token
+	Username           string  `json:"username"     gorm:"default:''"` // jika butuh username
+	DefaultMarkupType  string  `json:"default_markup_type"  gorm:"default:'percent'"`
+	DefaultMarkupValue float64 `json:"default_markup_value" gorm:"default:15"`
+	ExtraConfig        string  `json:"extra_config" gorm:"type:text"` // JSON config tambahan
+	Active             bool    `json:"active"       gorm:"default:true"`
 	// Cache daftar produk dari provider
 	LastSyncAt *time.Time `json:"last_sync_at"`
 	CreatedAt  time.Time  `json:"created_at"`

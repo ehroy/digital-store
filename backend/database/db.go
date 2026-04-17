@@ -35,8 +35,19 @@ func Init() {
 	); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
+	backfillProviderMarkupFlags()
 	seed()
 	log.Println("✅ Database ready:", config.App.DBPath)
+}
+
+// Produk provider lama dibuat sebelum field markup default ada.
+// Supaya sync harga mengikuti default provider, tandai semuanya sebagai default-based.
+func backfillProviderMarkupFlags() {
+	if err := DB.Model(&models.Product{}).
+		Where("type = ?", "provider").
+		Update("use_provider_default_markup", true).Error; err != nil {
+		log.Printf("⚠️ failed to backfill provider markup flags: %v", err)
+	}
 }
 
 func seed() {

@@ -21,7 +21,7 @@
 
   $: isVariantProduct = product?.type === 'provider' && Array.isArray(product?.variants) && product.variants.length > 0;
   $: if (isVariantProduct && !selectedVariantId) {
-    const firstAvailable = product.variants.find((v) => v.stock_status !== 'out_of_stock') || product.variants[0];
+    const firstAvailable = product.variants.find((v) => v.stock_status !== 'out_of_stock');
     selectedVariantId = firstAvailable?.product_id ? String(firstAvailable.product_id) : '';
   }
   $: selectedVariant = isVariantProduct
@@ -34,6 +34,7 @@
   $: displayName = isVariantProduct && selectedVariant
     ? `${product.name} · ${selectedVariant.variant_name}`
     : product?.name;
+  $: hasAvailableVariant = isVariantProduct && product.variants.some((v) => v.stock_status !== 'out_of_stock');
 
  function submit() {
   if (!name.trim()) {
@@ -46,11 +47,11 @@
     return;
   }
 
-  if (isVariantProduct) {
-    if (!selectedVariant) {
-      error = 'Pilih varian terlebih dahulu.';
-      return;
-    }
+    if (isVariantProduct) {
+      if (!selectedVariant) {
+        error = hasAvailableVariant ? 'Pilih varian terlebih dahulu.' : 'Semua varian sedang habis.';
+        return;
+      }
     if (selectedVariant.stock_status === 'out_of_stock') {
       error = 'Varian ini sedang habis.';
       return;
@@ -112,9 +113,10 @@
         <div class="variant-list">
           {#each product.variants as variant}
             <button
-              class="variant-item {String(variant.product_id)===selectedVariantId?'active':''}"
-              on:click={() => selectedVariantId = String(variant.product_id)}
+              class="variant-item {String(variant.product_id)===selectedVariantId?'active':''} {variant.stock_status === 'out_of_stock' ? 'sold-out' : ''}"
+              on:click={() => variant.stock_status !== 'out_of_stock' && (selectedVariantId = String(variant.product_id))}
               type="button"
+              disabled={variant.stock_status === 'out_of_stock'}
             >
               <div>
                 <div style="font-weight:500">{variant.variant_name || 'Varian'}</div>
@@ -122,8 +124,8 @@
               </div>
               <div style="text-align:right">
                 <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
-                <div style="font-size:11px;color:var(--text-muted)">
-                  {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok asli ${variant.available_stock}`}
+                <div class="variant-stock {variant.stock_status === 'out_of_stock' ? 'status-out' : variant.stock_status === 'manual' ? 'status-manual' : 'status-available'}">
+                  {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok ${variant.available_stock}`}
                 </div>
               </div>
             </button>
@@ -151,6 +153,7 @@
         <button
           type="button"
           class="btn btn-sm"
+          disabled={isVariantProduct ? !selectedVariant || selectedVariant.stock_status === 'out_of_stock' : product.type === 'stock' ? product.available_stock <= 0 : false}
           on:click={() => {
             if (isVariantProduct) {
               if (selectedVariant?.stock_status === 'available' && selectedVariant.available_stock > 0) {
@@ -168,7 +171,7 @@
           +
         </button>
 
-        <span style="font-size:12px;color:var(--text-muted)">
+        <span class="qty-hint">
           {#if isVariantProduct}
             {#if selectedVariant?.stock_status === 'available' && selectedVariant.available_stock > 0}
               Stok asli {selectedVariant.available_stock}
@@ -193,7 +196,7 @@
           <div style="font-size:12px;color:var(--text-muted)">Total Pembayaran</div>
           <div style="font-weight:500;font-size:19px">{IDR((unitPrice || product.price) * qty)}</div>
         </div>
-        <button class="btn btn-primary" type="button" on:click={submit}>Lanjut ke Pembayaran →</button>
+        <button class="btn btn-primary" type="button" on:click={submit} disabled={isVariantProduct && !hasAvailableVariant}>Lanjut ke Pembayaran →</button>
       </div>
     </div>
   </div>
@@ -220,6 +223,22 @@
   cursor: pointer;
 }
 .variant-item.active { border: 1.5px solid #0d5fa8; background: #fafeff; }
+.variant-item.sold-out {
+  cursor: not-allowed;
+  opacity: 0.62;
+  background: #fafafa;
+}
+.variant-item:disabled {
+  cursor: not-allowed;
+}
+.variant-stock {
+  font-size: 11px;
+  font-weight: 600;
+}
+.variant-stock.status-available { color: #2f5e0f; }
+.variant-stock.status-manual { color: #854F0B; }
+.variant-stock.status-out { color: #8c2626; }
+.qty-hint { font-size:12px;color:var(--text-muted); }
 .total-row {
   display: flex; justify-content: space-between; align-items: center;
   border-top: 0.5px solid var(--border); padding-top: 14px;
