@@ -28,7 +28,7 @@
 
   function buildQuery(nextPage) {
     const params = new URLSearchParams();
-    params.set('sort', 'populer');
+    params.set('sort', 'terlaris');
     params.set('page', String(nextPage));
     params.set('per_page', String(perPage));
     if (search.trim()) params.set('search', search.trim());
