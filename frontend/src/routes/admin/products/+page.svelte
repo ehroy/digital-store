@@ -480,6 +480,13 @@
                     </span>
                     <span style="color:var(--text-muted)"> / {p.total_stock??0}</span>
                   </div>
+                {:else if p.type==='provider'}
+                  <div style="font-size:13px">
+                    <span style="color:{p.available_stock===0?'#8c2626':p.available_stock<5?'#854F0B':'#2f5e0f'};font-weight:500">
+                      {p.available_stock??0} tersedia
+                    </span>
+                    <span style="color:var(--text-muted)">{p.stock_source === 'internal' ? ' / stok sendiri' : ' / provider'}</span>
+                  </div>
                 {:else}
                   <span style="font-size:12px;color:var(--text-muted)">∞ (jasa)</span>
                 {/if}
@@ -501,7 +508,7 @@
               <td>
                 <div style="display:flex;gap:5px;flex-wrap:wrap">
                   <button class="btn btn-sm" on:click={()=>openEdit(p)}>Edit</button>
-                  {#if p.type==='stock'}
+                  {#if p.type==='stock' || p.type==='provider'}
                     <button class="btn btn-sm" style="background:#E6F1FB;color:#185FA5;border-color:#B5D4F4" on:click={()=>openStock(p)}>Stok</button>
                   {/if}
                   <button class="btn btn-sm btn-danger" on:click={()=>del(p)}>Hapus</button>

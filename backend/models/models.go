@@ -18,8 +18,10 @@ type Product struct {
 	TermsAndConditions string           `json:"terms_and_conditions" gorm:"type:text;default:''"`
 	AvailableStock     int              `json:"available_stock"  gorm:"-"` // untuk tipe stock: jumlah item tersedia
 	TotalStock         int              `json:"total_stock"      gorm:"-"` // untuk tipe stock: total item
+	InternalStock      int              `json:"internal_stock"   gorm:"-"` // stok milik internal toko
 	ProviderStock      int              `json:"provider_stock"   gorm:"-"` // untuk tipe provider: stok real dari KoalaStore
 	ProviderStatus     string           `json:"provider_status"  gorm:"-"` // "available"|"out_of_stock"|"manual"
+	StockSource        string           `json:"stock_source"     gorm:"-"` // "stock"|"internal"|"provider"
 	Variants           []CatalogVariant `json:"variants,omitempty" gorm:"-"`
 
 	// Provider product fields — diisi jika Type = "provider"
@@ -46,9 +48,11 @@ type CatalogVariant struct {
 	TermsAndConditions string `json:"terms_and_conditions,omitempty"`
 	StockStatus        string `json:"stock_status"`
 	AvailableStock     int    `json:"available_stock"`
+	InternalStock      int    `json:"internal_stock,omitempty"`
 	Price              int64  `json:"price"`
 	OriginalPrice      int64  `json:"original_price,omitempty"`
 	IsActive           bool   `json:"is_active"`
+	StockSource        string `json:"stock_source,omitempty"`
 }
 
 type ProductStock struct {
@@ -80,6 +84,7 @@ type Order struct {
 	PaidAt             *time.Time `json:"paid_at"`
 	FulfilledAt        *time.Time `json:"fulfilled_at"`
 	ExpectedDeliveryAt *time.Time `json:"expected_delivery_at"`
+	FulfillmentSource  string     `json:"fulfillment_source" gorm:"default:''"`
 	DeliveredItems     string     `json:"delivered_items" gorm:"type:text"`
 	Notes              string     `json:"notes"`
 

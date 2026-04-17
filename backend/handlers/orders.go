@@ -14,6 +14,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func resolveProviderFulfillmentSource(internalStock int, providerProduct *models.ProviderProduct, qty int) (string, error) {
+	if internalStock >= qty && internalStock > 0 {
+		return "stock", nil
+	}
+	if providerProduct == nil {
+		return "", fmt.Errorf("varian produk tidak ditemukan")
+	}
+	if strings.EqualFold(providerProduct.Stock, "out_of_stock") {
+		return "", fmt.Errorf("varian ini sedang habis")
+	}
+	if strings.EqualFold(providerProduct.Stock, "available") && providerProduct.AvailableStock > 0 && providerProduct.AvailableStock < qty {
+		return "", fmt.Errorf("stok provider tidak mencukupi: tersedia %d, diminta %d", providerProduct.AvailableStock, qty)
+	}
+	return "provider", nil
+}
+
 func CreateOrder(c *gin.Context) {
 	var req struct {
 		ProductID  uint   `json:"product_id"  binding:"required"`
@@ -44,6 +60,7 @@ func CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "produk tidak tersedia"})
 		return
 	}
+	fulfillmentSource := ""
 	if product.Type == "stock" {
 		var avail int64
 		database.DB.Model(&models.ProductStock{}).
@@ -54,30 +71,42 @@ func CreateOrder(c *gin.Context) {
 			})
 			return
 		}
+		fulfillmentSource = "stock"
 	} else if product.Type == "provider" {
+		var internalAvail int64
+		database.DB.Model(&models.ProductStock{}).
+			Where("product_id = ? AND sold = ?", product.ID, false).Count(&internalAvail)
+
 		var pp models.ProviderProduct
-		if err := database.DB.Where("provider_name = ? AND code = ?", product.ProviderName, product.ProviderCode).First(&pp).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "varian produk tidak ditemukan"})
-			return
-		}
-		if pp.Stock == "out_of_stock" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "varian ini sedang habis"})
-			return
+		if int(internalAvail) < req.Qty || internalAvail == 0 {
+			if err := database.DB.Where("provider_name = ? AND code = ?", product.ProviderName, product.ProviderCode).First(&pp).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "varian produk tidak ditemukan"})
+				return
+			}
+			source, err := resolveProviderFulfillmentSource(int(internalAvail), &pp, req.Qty)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			fulfillmentSource = source
+		} else {
+			fulfillmentSource = "stock"
 		}
 	}
 
 	order := models.Order{
-		InvoiceNo:   generateInvoice(),
-		ProductID:   product.ID,
-		ProductName: product.Name,
-		ProductType: product.Type,
-		Qty:         req.Qty,
-		Price:       product.Price,
-		Total:       product.Price * int64(req.Qty),
-		BuyerName:   req.BuyerName,
-		BuyerEmail:  req.BuyerEmail,
-		PayMethod:   req.PayMethod,
-		Status:      "pending",
+		InvoiceNo:         generateInvoice(),
+		ProductID:         product.ID,
+		ProductName:       product.Name,
+		ProductType:       product.Type,
+		Qty:               req.Qty,
+		Price:             product.Price,
+		Total:             product.Price * int64(req.Qty),
+		BuyerName:         req.BuyerName,
+		BuyerEmail:        req.BuyerEmail,
+		PayMethod:         req.PayMethod,
+		Status:            "pending",
+		FulfillmentSource: fulfillmentSource,
 	}
 	if err := database.DB.Create(&order).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "gagal membuat order"})
@@ -204,6 +233,7 @@ func GetInvoicePublic(c *gin.Context) {
 		"pay_method":             order.PayMethod,
 		"status":                 order.Status,
 		"fulfillment_status":     order.FulfillmentStatus,
+		"fulfillment_source":     order.FulfillmentSource,
 		"is_fulfilled":           order.IsFulfilled,
 		"paid_at":                order.PaidAt,
 		"fulfilled_at":           order.FulfilledAt,
@@ -236,6 +266,7 @@ func CheckPayment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"invoice_no":             order.InvoiceNo,
 		"status":                 order.Status,
+		"fulfillment_source":     order.FulfillmentSource,
 		"gateway_pay_url":        order.GatewayPayURL,
 		"gateway_redirect_url":   order.GatewayRedirectURL,
 		"gateway_pay_code":       order.GatewayPayCode,

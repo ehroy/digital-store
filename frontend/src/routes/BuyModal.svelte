@@ -27,9 +27,9 @@
   $: selectedVariant = isVariantProduct
     ? product.variants.find((v) => String(v.product_id) === selectedVariantId)
     : null;
-  $: activeStock = isVariantProduct
-    ? selectedVariant
-    : (product?.type === 'stock' ? { stock_status: product.available_stock > 0 ? 'available' : 'out_of_stock', available_stock: product.available_stock } : null);
+  $: selectedVariantAvailableStock = selectedVariant
+    ? Number(selectedVariant.available_stock) || Number(selectedVariant.internal_stock) || 0
+    : 0;
   $: unitPrice = isVariantProduct ? (selectedVariant?.price || 0) : (product?.price || 0);
   $: displayName = isVariantProduct && selectedVariant
     ? `${product.name} · ${selectedVariant.variant_name}`
@@ -56,8 +56,8 @@
       error = 'Varian ini sedang habis.';
       return;
     }
-    if (selectedVariant.stock_status === 'available' && selectedVariant.available_stock > 0 && qty > selectedVariant.available_stock) {
-      error = `Jumlah maksimal untuk varian ini adalah ${selectedVariant.available_stock}.`;
+    if (selectedVariantAvailableStock > 0 && qty > selectedVariantAvailableStock) {
+      error = `Jumlah maksimal untuk varian ini adalah ${selectedVariantAvailableStock}.`;
       return;
     }
 
@@ -76,6 +76,11 @@
   // ❌ NON-PROVIDER (pakai stock biasa)
   if (product.type === 'stock' && (qty < 1 || qty > product.available_stock)) {
     error = `Jumlah harus antara 1 dan ${product.available_stock}.`;
+    return;
+  }
+
+  if (product.type === 'provider' && Number(product.available_stock) > 0 && qty > Number(product.available_stock)) {
+    error = `Jumlah maksimal untuk produk ini adalah ${product.available_stock}.`;
     return;
   }
 
@@ -124,8 +129,8 @@
               </div>
               <div style="text-align:right">
                 <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
-                <div class="variant-stock {variant.stock_status === 'out_of_stock' ? 'status-out' : variant.stock_status === 'manual' ? 'status-manual' : 'status-available'}">
-                  {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok ${variant.available_stock}`}
+                <div class="variant-stock {variant.stock_status === 'out_of_stock' ? 'status-out' : 'status-available'}">
+                  {variant.stock_status === 'out_of_stock' ? 'Habis' : `Stok ${variant.available_stock}`}
                 </div>
               </div>
             </button>
@@ -161,8 +166,8 @@
               } else {
                 qty = qty + 1;
               }
-            } else if (product.type === 'provider' && product.provider_status === 'available') {
-              qty = qty + 1;
+            } else if (product.type === 'provider' && Number(product.available_stock) > 0) {
+              qty = Math.min(Number(product.available_stock), qty + 1);
             } else {
               qty = Math.min(product.available_stock, qty + 1);
             }
@@ -171,17 +176,15 @@
           +
         </button>
 
-        <span class="qty-hint">
+          <span class="qty-hint">
           {#if isVariantProduct}
-            {#if selectedVariant?.stock_status === 'available' && selectedVariant.available_stock > 0}
-              Stok asli {selectedVariant.available_stock}
+            {#if selectedVariantAvailableStock > 0}
+              Stok {selectedVariantAvailableStock}
             {:else if selectedVariant?.stock_status === 'manual'}
               Stock manual
             {:else}
               Varian tidak tersedia
             {/if}
-          {:else if product.type === 'provider' && product.provider_status === 'available'}
-            Stock Tergantung penyedia
           {:else}
             Maks {product.available_stock}
           {/if}

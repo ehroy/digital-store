@@ -30,13 +30,12 @@
   $: hasVariants = product?.type === 'provider' && Array.isArray(product?.variants) && product.variants.length > 0;
   $: compactVariants = hasVariants && product.variants.length > 2;
   $: providerOutOfStock = hasVariants && product.variants.every(v => v.stock_status === 'out_of_stock');
-  $: totalVariantStock = hasVariants ? product.variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0) : 0;
   $: stockLabel = product?.type === 'stock'
     ? (outOfStock ? 'Habis' : product.available_stock < 5 ? `Sisa ${product.available_stock}` : 'Tersedia')
-    : (providerOutOfStock ? 'Habis' : hasVariants ? `${product.variants.filter(v => v.stock_status !== 'out_of_stock').length} varian aktif` : (product?.provider_status === 'manual' ? 'Manual' : 'Tersedia'));
+    : (providerOutOfStock ? 'Habis' : hasVariants ? `${product.variants.filter(v => v.stock_status !== 'out_of_stock').length} varian aktif` : 'Tersedia');
   $: stockColor = product?.type === 'stock'
     ? (outOfStock ? '#8c2626' : product.available_stock < 5 ? '#854F0B' : '#2f5e0f')
-    : (providerOutOfStock ? '#8c2626' : product?.provider_status === 'manual' ? '#854F0B' : '#2f5e0f');
+    : (providerOutOfStock ? '#8c2626' : '#2f5e0f');
 
   function compactVariantName(name) {
     return (name || 'Varian').split(/\s+/).slice(0, 2).join(' ');
@@ -141,11 +140,11 @@
             {#each product.variants as variant, index}
               <div class="variant-row">
                 <div>
-                  <div class:compact-variant-name={compactVariants} style="font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : variant.stock_status === 'manual' ? '#854F0B' : '#0f172a'}" title={variant.variant_name || 'Varian'}>
+                  <div class:compact-variant-name={compactVariants} style="font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : '#0f172a'}" title={variant.variant_name || 'Varian'}>
                     {compactVariants ? `${compactVariantName(variant.variant_name)} ${index + 1}` : (variant.variant_name || 'Varian')}
                   </div>
                   {#if !compactVariants}
-                    <div style="font-size:11.5px;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : variant.stock_status === 'manual' ? '#854F0B' : 'var(--text-muted)'}">
+                    <div style="font-size:11.5px;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : 'var(--text-muted)'}">
                       {#if variant.duration_label}{variant.duration_label} {/if}
                       {#if variant.account_type}{variant.account_type} {/if}
                       {#if variant.region}{variant.region} {/if}
@@ -154,8 +153,8 @@
                 </div>
                 <div style="text-align:right">
                   <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
-                  <div class:compact-variant-meta={compactVariants} style="font-size:11px;font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : variant.stock_status === 'manual' ? '#854F0B' : '#2f5e0f'}">
-                    {variant.stock_status === 'out_of_stock' ? 'Habis' : variant.stock_status === 'manual' ? 'Manual' : `Stok ${variant.available_stock}`}
+                  <div class:compact-variant-meta={compactVariants} style="font-size:11px;font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : '#2f5e0f'}">
+                    {variant.stock_status === 'out_of_stock' ? 'Habis' : `Stok ${variant.available_stock}`}
                   </div>
                 </div>
               </div>

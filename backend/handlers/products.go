@@ -326,19 +326,35 @@ func populateProductAvailability(p *models.Product) {
 		database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", p.ID, false).Count(&avail)
 		p.AvailableStock = int(avail)
 		p.TotalStock = int(total)
+		p.InternalStock = int(avail)
+		p.StockSource = "stock"
 	case "provider":
+		var internalAvail int64
+		database.DB.Model(&models.ProductStock{}).Where("product_id = ? AND sold = ?", p.ID, false).Count(&internalAvail)
+		p.InternalStock = int(internalAvail)
+		if internalAvail > 0 {
+			p.StockSource = "internal"
+		}
 		var pp models.ProviderProduct
 		if err := database.DB.Where("provider_name = ? AND code = ?", p.ProviderName, p.ProviderCode).First(&pp).Error; err == nil {
 			p.ProviderStock = pp.AvailableStock
 			p.ProviderStatus = pp.Stock
-			if pp.Stock == "out_of_stock" {
-				p.AvailableStock = 0
+			p.AvailableStock = int(internalAvail) + pp.AvailableStock
+			if internalAvail > 0 && pp.AvailableStock > 0 {
+				p.StockSource = "combined"
+			} else if internalAvail > 0 {
+				p.StockSource = "internal"
 			} else {
-				p.AvailableStock = pp.AvailableStock
+				p.StockSource = "provider"
 			}
 		} else {
 			p.ProviderStatus = "unknown"
-			p.AvailableStock = 0
+			p.AvailableStock = int(internalAvail)
+			if internalAvail > 0 {
+				p.StockSource = "internal"
+			} else {
+				p.StockSource = "provider"
+			}
 		}
 	}
 }
@@ -587,6 +603,9 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 		if stock == "" {
 			stock = "unknown"
 		}
+		if p.InternalStock > 0 {
+			stock = "available"
+		}
 		if stock != "out_of_stock" {
 			availableCount++
 		}
@@ -605,10 +624,12 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 			WarrantyTerms:      p.WarrantyTerms,
 			TermsAndConditions: p.TermsAndConditions,
 			StockStatus:        stock,
-			AvailableStock:     p.ProviderStock,
+			AvailableStock:     p.AvailableStock,
+			InternalStock:      p.InternalStock,
 			Price:              p.Price,
 			OriginalPrice:      p.ProviderPrice,
 			IsActive:           p.Active,
+			StockSource:        p.StockSource,
 		})
 		applyProviderVariantWarrantyDefaults(&variants[len(variants)-1], stock)
 	}
@@ -634,7 +655,18 @@ func buildProviderCatalogGroup(products []models.Product) models.Product {
 	}
 	best.ProviderStatus = providerCatalogStatus(variants)
 	best.ProviderStock = totalStock
+	best.InternalStock = 0
+	for _, p := range products {
+		best.InternalStock += p.InternalStock
+	}
 	best.AvailableStock = totalStock
+	best.AvailableStock += best.InternalStock
+	best.StockSource = "provider"
+	if best.InternalStock > 0 && best.ProviderStock > 0 {
+		best.StockSource = "combined"
+	} else if best.InternalStock > 0 {
+		best.StockSource = "internal"
+	}
 	best.WarrantyTerms = pickWarrantyText(products, true)
 	best.TermsAndConditions = pickTermsText(products, true)
 	return best

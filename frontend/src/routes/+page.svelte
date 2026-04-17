@@ -96,24 +96,29 @@
       return { label: 'Tersedia', color: '#2f5e0f', canBuy: true };
     }
     if (p.type === 'provider') {
+      const totalStock = Number(p.available_stock) || 0;
       const variants = Array.isArray(p.variants) ? p.variants : [];
       const availableVariants = variants.filter(v => v.stock_status !== 'out_of_stock');
-      const totalStock = variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0);
+      const variantStockTotal = variants.reduce((sum, v) => sum + (Number(v.available_stock) || 0), 0);
       if (variants.length > 0) {
         if (availableVariants.length === 0) {
           return { label: 'Habis', color: '#8c2626', canBuy: false };
         }
-        return { label: `${availableVariants.length} varian aktif`, color: '#2f5e0f', canBuy: true, stock: totalStock };
+        return { label: `${availableVariants.length} varian aktif`, color: '#2f5e0f', canBuy: true, stock: variantStockTotal };
       }
       switch (p.provider_status) {
         case 'available':
-          return { label: 'Tersedia', color: '#2f5e0f', canBuy: true, stock: p.provider_stock ?? 0 };
+          return { label: totalStock > 0 ? `Stok ${totalStock}` : 'Cek Stok...', color: '#2f5e0f', canBuy: totalStock > 0, stock: totalStock };
         case 'out_of_stock':
           return { label: 'Habis di Provider', color: '#8c2626', canBuy: false };
         case 'manual':
-          return { label: 'Proses Manual', color: '#854F0B', canBuy: true };
+          return totalStock > 0
+            ? { label: `Stok ${totalStock}`, color: '#2f5e0f', canBuy: true, stock: totalStock }
+            : { label: 'Proses Manual', color: '#854F0B', canBuy: true };
         default:
-          return { label: 'Cek Stok...', color: '#999', canBuy: false };
+          return totalStock > 0
+            ? { label: `Stok ${totalStock}`, color: '#2f5e0f', canBuy: true, stock: totalStock }
+            : { label: 'Cek Stok...', color: '#999', canBuy: false };
       }
     }
     return { label: '—', color: '#999', canBuy: false };
@@ -245,6 +250,11 @@
               {/if}
               {stock.label}
             </div>
+            {#if stock.detail}
+              <div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);margin-top:-2px">
+                {stock.detail}
+              </div>
+            {/if}
           </div>
 
           {#if product.type === 'provider' && Array.isArray(product.variants) && product.variants.length > 0}
