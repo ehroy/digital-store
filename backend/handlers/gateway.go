@@ -403,31 +403,7 @@ func deliverOrder(order *models.Order) {
 	var product models.Product
 	database.DB.First(&product, order.ProductID)
 
-	// Produk tipe provider: order langsung ke KoalaStore saat payment dikonfirmasi
-	if order.ProductType == "provider" {
-		if order.FulfillmentSource == "stock" {
-			if order.DeliveredItems != "" {
-				database.DB.Model(order).Updates(map[string]any{
-					"status":             "paid",
-					"fulfillment_status": "fulfilled",
-					"is_fulfilled":       true,
-				})
-				return
-			}
-			claimed, err := ClaimStockItems(order.ProductID, order.Qty, order.InvoiceNo)
-			if err != nil {
-				log.Printf("[DELIVER] Gagal klaim stok provider fallback %s: %v", order.InvoiceNo, err)
-				database.DB.Model(order).Update("status", "failed")
-				return
-			}
-			itemData := make([]string, len(claimed))
-			for i, it := range claimed {
-				itemData[i] = it.Data
-			}
-			finalizeOrderDelivery(order, &product, itemData)
-			return
-		}
-
+	deliverProviderOrder := func() {
 		providerProduct, provider, err := lookupProviderProductForOrder(order)
 		if err != nil {
 			log.Printf("[DELIVER] provider lookup gagal %s: %v", order.InvoiceNo, err)
@@ -461,6 +437,35 @@ func deliverOrder(order *models.Order) {
 			return
 		}
 		finalizeOrderDelivery(order, &product, delivered)
+	}
+
+	// Produk tipe provider: order langsung ke KoalaStore saat payment dikonfirmasi
+	if order.ProductType == "provider" {
+		if order.FulfillmentSource == "stock" {
+			if order.DeliveredItems != "" {
+				database.DB.Model(order).Updates(map[string]any{
+					"status":             "paid",
+					"fulfillment_status": "fulfilled",
+					"is_fulfilled":       true,
+				})
+				return
+			}
+			claimed, err := ClaimStockItems(order.ProductID, order.Qty, order.InvoiceNo)
+			if err != nil {
+				log.Printf("[DELIVER] Stok internal habis untuk %s, fallback ke provider: %v", order.InvoiceNo, err)
+				database.DB.Model(order).Update("fulfillment_source", "provider")
+				order.FulfillmentSource = "provider"
+				deliverProviderOrder()
+				return
+			}
+			itemData := make([]string, len(claimed))
+			for i, it := range claimed {
+				itemData[i] = it.Data
+			}
+			finalizeOrderDelivery(order, &product, itemData)
+			return
+		}
+		deliverProviderOrder()
 		return
 	}
 	if order.ProductType == "stock" {
