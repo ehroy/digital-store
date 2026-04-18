@@ -78,6 +78,7 @@
   const SC = {
     paid:            { icon:'✅', color:'#2f5e0f', bg:'#EAF3DE' },
     pending:         { icon:'⏳', color:'#854F0B', bg:'#FAEEDA' },
+    waiting_payment: { icon:'⏳', color:'#854F0B', bg:'#FAEEDA' },
     script_executed: { icon:'⚙️', color:'#185FA5', bg:'#E6F1FB' },
     expired:         { icon:'⌛', color:'#8c2626', bg:'#FCEBEB' },
     failed:          { icon:'❌', color:'#8c2626', bg:'#FCEBEB' },

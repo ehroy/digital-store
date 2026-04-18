@@ -13,9 +13,10 @@ import (
 )
 
 func GetProducts(c *gin.Context) {
+	isAdmin := c.Query("admin") == "1"
 	var products []models.Product
 	query := database.DB
-	if c.Query("admin") != "1" {
+	if !isAdmin {
 		query = query.Where("active = ?", true)
 	}
 	if cat := c.Query("category"); cat != "" {
@@ -45,7 +46,7 @@ func GetProducts(c *gin.Context) {
 		}
 	}
 
-	if c.Query("admin") == "1" {
+	if isAdmin {
 		page := parsePositiveQueryInt(c.Query("page"), 1)
 		perPage := parsePositiveQueryInt(c.Query("per_page"), 10)
 		if perPage > 100 {
@@ -99,11 +100,14 @@ func GetProducts(c *gin.Context) {
 	}
 	productCounts, familyCounts := buildProductSalesIndex(products)
 
-	if c.Query("admin") != "1" {
+	if !isAdmin {
 		products = normalizePublicCatalog(products)
 		products = sortPublicCatalog(products, c.Query("sort"), productCounts, familyCounts)
 	} else {
 		products = sortPublicCatalog(products, c.Query("sort"), productCounts, familyCounts)
+	}
+	if !isAdmin {
+		products = sanitizePublicCatalog(products)
 	}
 
 	for i := range products {
@@ -111,7 +115,7 @@ func GetProducts(c *gin.Context) {
 	}
 
 	var publicCategories []string
-	if c.Query("admin") != "1" {
+	if !isAdmin {
 		_ = database.DB.Model(&models.Product{}).
 			Where("active = ?", true).
 			Distinct("category").
@@ -169,7 +173,7 @@ func GetProducts(c *gin.Context) {
 		return
 	}
 
-	if c.Query("admin") != "1" {
+	if !isAdmin {
 		c.JSON(http.StatusOK, gin.H{"items": products, "categories": publicCategories})
 		return
 	}
@@ -188,6 +192,7 @@ func GetProduct(c *gin.Context) {
 		attachProviderVariants(&p)
 	}
 	applyProductWarrantyDefaults(&p)
+	sanitizePublicProduct(&p)
 	c.JSON(http.StatusOK, p)
 }
 
@@ -782,6 +787,46 @@ func providerCatalogStatus(variants []models.CatalogVariant) string {
 		}
 	}
 	return "out_of_stock"
+}
+
+func sanitizePublicCatalog(products []models.Product) []models.Product {
+	for i := range products {
+		sanitizePublicProduct(&products[i])
+	}
+	return products
+}
+
+func sanitizePublicProduct(p *models.Product) {
+	if p == nil {
+		return
+	}
+	p.ProviderName = ""
+	p.ProviderCode = ""
+	p.ProviderPrice = 0
+	p.MarkupType = ""
+	p.MarkupValue = 0
+	p.UseProviderDefaultMarkup = false
+	p.AutoSync = false
+	p.ProviderStock = 0
+	p.InternalStock = 0
+	p.ProviderStatus = ""
+	p.StockSource = ""
+	if len(p.Variants) == 0 {
+		return
+	}
+	for i := range p.Variants {
+		sanitizePublicVariant(&p.Variants[i])
+	}
+}
+
+func sanitizePublicVariant(v *models.CatalogVariant) {
+	if v == nil {
+		return
+	}
+	v.ProviderCode = ""
+	v.InternalStock = 0
+	v.StockSource = ""
+	v.OriginalPrice = 0
 }
 
 func pickWarrantyText(products []models.Product, isProvider bool) string {

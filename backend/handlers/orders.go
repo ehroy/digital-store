@@ -223,8 +223,6 @@ func GetInvoicePublic(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"invoice_no":             order.InvoiceNo,
-		"gateway_invoice_no":     order.GatewayInvoiceNo,
-		"gateway_provider":       order.GatewayProvider,
 		"product_name":           order.ProductName,
 		"product_type":           order.ProductType,
 		"buyer_name":             order.BuyerName,
@@ -233,7 +231,6 @@ func GetInvoicePublic(c *gin.Context) {
 		"pay_method":             order.PayMethod,
 		"status":                 order.Status,
 		"fulfillment_status":     order.FulfillmentStatus,
-		"fulfillment_source":     order.FulfillmentSource,
 		"is_fulfilled":           order.IsFulfilled,
 		"paid_at":                order.PaidAt,
 		"fulfilled_at":           order.FulfilledAt,
@@ -241,7 +238,6 @@ func GetInvoicePublic(c *gin.Context) {
 		"delivery_message":       deliveryMessage,
 		"delivered_items":        items,
 		"gateway_pay_url":        order.GatewayPayURL,
-		"gateway_redirect_url":   order.GatewayRedirectURL,
 		"gateway_pay_code":       order.GatewayPayCode,
 		"gateway_qris_string":    order.GatewayQrisString,
 		"gateway_qris_image_url": order.GatewayQrisImageURL,
@@ -266,9 +262,7 @@ func CheckPayment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"invoice_no":             order.InvoiceNo,
 		"status":                 order.Status,
-		"fulfillment_source":     order.FulfillmentSource,
 		"gateway_pay_url":        order.GatewayPayURL,
-		"gateway_redirect_url":   order.GatewayRedirectURL,
 		"gateway_pay_code":       order.GatewayPayCode,
 		"gateway_qris_string":    order.GatewayQrisString,
 		"gateway_qris_image_url": order.GatewayQrisImageURL,

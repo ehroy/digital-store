@@ -24,7 +24,9 @@ func lookupProviderProductForOrder(order *models.Order) (*models.ProviderProduct
 
 	var provider models.ExternalProvider
 	if err := database.DB.Where("name = ? AND active = ?", product.ProviderName, true).First(&provider).Error; err != nil {
-		return &providerProduct, nil, err
+		if err := database.DB.Where("name = ?", product.ProviderName).First(&provider).Error; err != nil {
+			return &providerProduct, nil, err
+		}
 	}
 
 	return &providerProduct, &provider, nil

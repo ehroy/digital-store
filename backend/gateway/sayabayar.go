@@ -79,10 +79,21 @@ func ExtractPaymentRef(raw string) string {
 	return strings.TrimSpace(parts[len(parts)-1])
 }
 
+// SBWebhookData — data webhook yang dikirim SayaBayar ke endpoint kamu
+type SBWebhookData struct {
+	InvoiceID      string `json:"invoice_id"`
+	InvoiceNumber  string `json:"invoice_number"`
+	Amount         int64  `json:"amount"`
+	AmountUnique   int64  `json:"amount_unique"`
+	Status         string `json:"status"`
+	PaymentChannel string `json:"payment_channel"`
+	PaidAt         string `json:"paid_at"`
+}
+
 // SBWebhookPayload — payload yang dikirim SayaBayar ke webhook endpoint kamu
 type SBWebhookPayload struct {
-	Event     string        `json:"event"` // "invoice.paid" | "invoice.expired"
-	Invoice   SBInvoiceData `json:"invoice"`
+	Event     string        `json:"event"` // "invoice.paid" | "invoice.expired" | "invoice.cancelled"
+	Data      SBWebhookData `json:"data"`
 	Timestamp string        `json:"timestamp"`
 }
 

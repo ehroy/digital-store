@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"digistore/config"
 	"digistore/database"
 	"digistore/email"
 	"digistore/gateway"
 	"digistore/models"
 	"digistore/scripts"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -289,30 +292,96 @@ func WebhookSayaBayar(c *gin.Context) {
 		return
 	}
 
+	signature := strings.TrimSpace(c.GetHeader("X-Webhook-Signature"))
+	if config.App.SayaBayarWebhookSecret == "" {
+		log.Printf("[SAYABAYAR WEBHOOK] secret belum diatur ip=%s", c.ClientIP())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "webhook secret belum diatur"})
+		return
+	}
+	if !verifySayaBayarWebhookSignature(rawBody, signature) {
+		log.Printf("[SAYABAYAR WEBHOOK] signature invalid ip=%s", c.ClientIP())
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "signature tidak valid"})
+		return
+	}
+
 	var payload gateway.SBWebhookPayload
 	if err := json.Unmarshal(rawBody, &payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payload tidak valid"})
 		return
 	}
 	log.Printf("[SAYABAYAR WEBHOOK] event=%s id=%s inv=%s status=%s",
-		payload.Event, payload.Invoice.ID, payload.Invoice.InvoiceNumber, payload.Invoice.Status)
+		payload.Event, payload.Data.InvoiceID, payload.Data.InvoiceNumber, payload.Data.Status)
 
-	// Cari order via gateway_charge_id (= ID dari SayaBayar)
-	var order models.Order
-	if err := database.DB.Where("gateway_charge_id = ?", payload.Invoice.ID).First(&order).Error; err != nil {
-		// Fallback: cari via gateway_invoice_no
-		if payload.Invoice.InvoiceNumber != "" {
-			database.DB.Where("gateway_invoice_no = ?", payload.Invoice.InvoiceNumber).First(&order)
-		}
+	if payload.Event == "" {
+		payload.Event = c.GetHeader("X-Webhook-Event")
 	}
-	if order.ID == 0 {
-		log.Printf("[SAYABAYAR WEBHOOK] Order tidak ditemukan untuk charge_id=%s", payload.Invoice.ID)
+
+	if payload.Event != "invoice.paid" && payload.Event != "invoice.expired" && payload.Event != "invoice.cancelled" {
 		c.JSON(http.StatusOK, gin.H{"message": "diabaikan"})
 		return
 	}
 
-	amount := payload.Invoice.Amount
-	handleWebhookEvent("sayabayar", payload.Invoice.InvoiceNumber, payload.Invoice.ID, payload.Event, payload.Invoice.Status, &amount, c)
+	// Cari order via gateway_charge_id (= invoice_id dari SayaBayar)
+	var order models.Order
+	if err := database.DB.Where("gateway_charge_id = ?", firstNonEmpty(payload.Data.InvoiceID, payload.Data.InvoiceNumber)).First(&order).Error; err != nil {
+		// Fallback: cari via gateway_invoice_no
+		ref := firstNonEmpty(payload.Data.InvoiceNumber, payload.Data.InvoiceID)
+		if ref != "" {
+			_ = database.DB.Where("gateway_invoice_no = ?", ref).First(&order).Error
+		}
+	}
+	if order.ID == 0 {
+		log.Printf("[SAYABAYAR WEBHOOK] Order tidak ditemukan untuk invoice_id=%s invoice_no=%s", payload.Data.InvoiceID, payload.Data.InvoiceNumber)
+		c.JSON(http.StatusOK, gin.H{"message": "diabaikan"})
+		return
+	}
+
+	amount := payload.Data.Amount
+	if amount == 0 {
+		amount = payload.Data.AmountUnique
+	}
+	if amount > 0 && order.Total > 0 && amount != order.Total {
+		log.Printf("[SAYABAYAR WEBHOOK] amount mismatch invoice=%s expected=%d got=%d", order.InvoiceNo, order.Total, amount)
+		database.DB.Model(&order).Update("status", "verifying")
+		c.JSON(http.StatusOK, gin.H{"received": true, "status": "verifying"})
+		return
+	}
+
+	switch payload.Event {
+	case "invoice.paid":
+		database.DB.Model(&order).Updates(map[string]any{
+			"status":             "verifying",
+			"gateway_provider":   firstNonEmpty(order.GatewayProvider, "sayabayar"),
+			"gateway_charge_id":  firstNonEmpty(order.GatewayChargeID, payload.Data.InvoiceID),
+			"gateway_invoice_no": firstNonEmpty(order.GatewayInvoiceNo, payload.Data.InvoiceNumber),
+		})
+		order.Status = "verifying"
+		deliverOrder(&order)
+	case "invoice.expired":
+		database.DB.Model(&order).Update("status", "expired")
+		restoreStock(&order)
+	case "invoice.cancelled":
+		database.DB.Model(&order).Update("status", "cancelled")
+		restoreStock(&order)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"received": true})
+}
+
+func verifySayaBayarWebhookSignature(rawBody []byte, signature string) bool {
+	signature = strings.TrimSpace(signature)
+	if signature == "" {
+		return false
+	}
+	signature = strings.TrimPrefix(signature, "sha256=")
+	secret := strings.TrimSpace(config.App.SayaBayarWebhookSecret)
+	if secret == "" {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(rawBody)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
 }
 
 // ── handleWebhookEvent — logik bersama ───────────────────────────────────────

@@ -22,6 +22,7 @@ type Config struct {
 	ResendAPIKey            string
 	EmailFrom               string
 	KoalaStoreWebhookSecret string
+	SayaBayarWebhookSecret  string
 }
 
 var App Config
@@ -45,6 +46,7 @@ func Load() {
 		ResendAPIKey:            getEnv("APIKEY_RESEND", ""),
 		EmailFrom:               getEnv("SMTP_FROM", "noreply@digitalku-murah.com"),
 		KoalaStoreWebhookSecret: getEnv("KOALASTORE_WEBHOOK_SECRET", "Kaserinas123@"),
+		SayaBayarWebhookSecret:  getEnv("SAYABAYAR_WEBHOOK_SECRET", "whsec_a1bed29c054daaa954abce7107b02cdb692f072420520e1d"),
 	}
 }
 

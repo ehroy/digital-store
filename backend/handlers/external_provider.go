@@ -412,7 +412,9 @@ func OrderFromKoalaStore(order *models.Order, product *models.Product) ([]string
 	// Cari provider
 	var provider models.ExternalProvider
 	if err := database.DB.Where("name = ? AND active = ?", product.ProviderName, true).First(&provider).Error; err != nil {
-		return nil, fmt.Errorf("provider '%s' tidak aktif atau tidak ditemukan", product.ProviderName)
+		if err := database.DB.Where("name = ?", product.ProviderName).First(&provider).Error; err != nil {
+			return nil, fmt.Errorf("provider '%s' tidak ditemukan", product.ProviderName)
+		}
 	}
 
 	ks := gateway.NewKoalaStore(provider.APIKey)
