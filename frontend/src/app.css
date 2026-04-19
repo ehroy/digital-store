@@ -108,6 +108,13 @@ input, select, textarea, button {
 .btn-danger  { background: #b42318; color: #fff; border-color: transparent; }
 .btn-success { background: #166534; color: #fff; border-color: transparent; }
 .btn-sm { padding: 5px 12px; font-size: 12.5px; }
+.nav-action-btn {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 
 .input {
   width: 100%;

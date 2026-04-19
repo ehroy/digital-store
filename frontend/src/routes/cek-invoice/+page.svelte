@@ -93,14 +93,16 @@
 
 <svelte:head><title>Cek Invoice — Digital Murah</title></svelte:head>
 
-<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)">
-  <div style="max-width:700px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
-    <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
+<nav class="cek-nav">
+  <div class="cek-nav-inner">
+    <a href="/" class="cek-brand">
       <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
-    <ThemeToggle />
-    <span style="margin-left:auto;font-size:13px;color:var(--text-muted)">Cek Invoice</span>
+    <div class="cek-actions">
+      <ThemeToggle />
+      <span class="cek-meta">Cek Invoice</span>
+    </div>
   </div>
 </nav>
 
@@ -262,3 +264,60 @@
     </div>
   {/if}
 </div>
+
+<style>
+.cek-nav {
+  background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(14px);
+}
+
+.cek-nav-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.cek-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.cek-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cek-actions :global(.btn) {
+  white-space: nowrap;
+}
+
+.cek-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .cek-nav { padding-inline: 0.75rem; }
+  .cek-nav-inner { align-items: flex-start; }
+  .cek-actions { width: 100%; margin-left: 0; justify-content: flex-start; }
+  .cek-actions :global(.btn), .cek-actions :global(.nav-action-btn) { flex: 1 1 calc(50% - 4px); }
+  .cek-meta { width: 100%; order: 3; }
+}
+</style>

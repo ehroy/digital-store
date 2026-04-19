@@ -17,6 +17,6 @@
   onMount(syncTheme);
 </script>
 
-<button class="btn btn-sm theme-nav-btn" type="button" on:click={toggleTheme} aria-label="Toggle tema">
+<button class="btn btn-sm theme-nav-btn nav-action-btn" type="button" on:click={toggleTheme} aria-label="Toggle tema">
   {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
 </button>

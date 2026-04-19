@@ -112,14 +112,16 @@
 
 <svelte:head><title>Pembayaran {invoiceNo} — Digital Murah</title></svelte:head>
 
-<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)">
-  <div style="max-width:800px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
-    <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
+<nav class="invoice-nav">
+  <div class="invoice-nav-inner">
+    <a href="/" class="invoice-brand">
       <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
-    <ThemeToggle />
-    <span class="mono" style="margin-left:auto;font-size:12px;color:var(--text-muted)">{invoiceNo}</span>
+    <div class="invoice-actions">
+      <ThemeToggle />
+      <span class="invoice-meta mono">{invoiceNo}</span>
+    </div>
   </div>
 </nav>
 
@@ -308,6 +310,53 @@
 </div>
 
 <style>
+.invoice-nav {
+  background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(14px);
+}
+
+.invoice-nav-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.invoice-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.invoice-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.invoice-actions :global(.btn) {
+  white-space: nowrap;
+}
+
+.invoice-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .pay-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
 @media(max-width:640px) { .pay-grid { grid-template-columns:1fr; } }
 .info-box { background:var(--info-bg);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--info-fg); }
@@ -384,6 +433,11 @@
 }
 
 @media (max-width: 640px) {
+  .invoice-nav { padding-inline: 0.75rem; }
+  .invoice-nav-inner { align-items: flex-start; }
+  .invoice-actions { width: 100%; margin-left: 0; justify-content: flex-start; }
+  .invoice-actions :global(.btn), .invoice-actions :global(.nav-action-btn) { flex: 1 1 calc(50% - 4px); }
+  .invoice-meta { width: 100%; order: 3; }
   .detail-toggle { display: inline-flex; }
   .detail-panel:not(.detail-open) { display: none; }
 }

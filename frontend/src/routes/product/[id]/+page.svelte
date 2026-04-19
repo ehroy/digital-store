@@ -142,11 +142,11 @@
             {#each product.variants as variant, index}
               <div class="variant-row">
                 <div>
-                  <div class:compact-variant-name={compactVariants} style="font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : '#0f172a'}" title={variant.variant_name || 'Varian'}>
+                  <div class:compact-variant-name={compactVariants} style="font-weight:600;color:{variant.stock_status === 'out_of_stock' ? 'var(--danger-fg)' : 'var(--text)'}" title={variant.variant_name || 'Varian'}>
                     {compactVariants ? `${compactVariantName(variant.variant_name)} ${index + 1}` : (variant.variant_name || 'Varian')}
                   </div>
                   {#if !compactVariants}
-                    <div style="font-size:11.5px;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : 'var(--text-muted)'}">
+                    <div style="font-size:11.5px;color:{variant.stock_status === 'out_of_stock' ? 'var(--danger-fg)' : 'var(--text-muted)'}">
                       {#if variant.duration_label}{variant.duration_label} {/if}
                       {#if variant.account_type}{variant.account_type} {/if}
                       {#if variant.region}{variant.region} {/if}
@@ -155,7 +155,7 @@
                 </div>
                 <div style="text-align:right">
                   <div style="font-weight:500;color:var(--primary)">{IDR(variant.price)}</div>
-                  <div class:compact-variant-meta={compactVariants} style="font-size:11px;font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : '#2f5e0f'}">
+                  <div class:compact-variant-meta={compactVariants} style="font-size:11px;font-weight:600;color:{variant.stock_status === 'out_of_stock' ? 'var(--danger-fg)' : 'var(--success-fg)'}">
                     {variant.stock_status === 'out_of_stock' ? 'Habis' : `Stok ${variant.available_stock}`}
                   </div>
                 </div>
