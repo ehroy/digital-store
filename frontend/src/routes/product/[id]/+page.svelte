@@ -55,9 +55,9 @@
       <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
-    <span style="color:var(--text-muted);font-size:13px;margin-left:4px">/ {loading ? '…' : (product?.name || 'Produk')}</span>
-    <div style="display:flex;gap:8px;margin-left:auto">
+    <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end">
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
+      <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
     </div>
   </div>
 </nav>
