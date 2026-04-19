@@ -25,6 +25,7 @@
   let lastChecked = null;
   let cred = '';
   let qrisDataUrl = '';
+  let showDetails = false;
 
   $: statusKey = data?.status === 'pending' ? 'waiting_payment' : data?.status;
   $: isFinal = data && ['paid','cancelled','expired','failed'].includes(statusKey);
@@ -178,9 +179,14 @@
     <div class="pay-grid">
       <!-- Kiri: detail + instruksi -->
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">Detail Pesanan</div>
-          <table style="width:100%;border-collapse:collapse">
+        <button class="detail-toggle" type="button" on:click={() => showDetails = !showDetails}>
+          <span>Detail Pesanan</span>
+          <span>{showDetails ? 'Sembunyikan' : 'Lihat detail'}</span>
+        </button>
+
+        <div class:detail-open={showDetails} class="detail-panel card" style="padding:0;overflow:hidden">
+          <div class="detail-head">Detail Pesanan</div>
+          <table class="detail-table">
             <tbody>
               {#each [
                 ['Produk', data.product_name],
@@ -189,13 +195,13 @@
                 ['Metode', PAY_LABEL[data.pay_method] || data.pay_method],
               ] as [l,v], i}
                 <tr style="background:{i%2===0?'var(--surface-2)':'var(--surface)'}">
-                  <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:38%">{l}</td>
-                  <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
+                  <td>{l}</td>
+                  <td>{v}</td>
                 </tr>
               {/each}
-              <tr style="border-top:2px solid var(--primary)">
-                <td style="padding:11px 16px;font-weight:600">Total</td>
-                <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:var(--primary)">{IDR(data.total)}</td>
+              <tr class="detail-total">
+                <td>Total</td>
+                <td>{IDR(data.total)}</td>
               </tr>
             </tbody>
           </table>
@@ -307,4 +313,78 @@
 .info-box { background:var(--info-bg);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--info-fg); }
 .pulse { font-size:40px;display:inline-block;animation:pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.7} }
+
+.detail-toggle {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.detail-toggle span:last-child {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detail-panel {
+  display: block;
+}
+
+.detail-head {
+  padding: 0.9rem 1.25rem;
+  font-weight: 500;
+  font-size: 14px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detail-table td {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.detail-table td:first-child {
+  color: var(--text-muted);
+  width: 38%;
+}
+
+.detail-table td:last-child {
+  text-align: right;
+}
+
+.detail-total {
+  border-top: 2px solid var(--primary);
+}
+
+.detail-total td {
+  padding: 11px 16px;
+}
+
+.detail-total td:first-child {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-total td:last-child {
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .detail-toggle { display: inline-flex; }
+  .detail-panel:not(.detail-open) { display: none; }
+}
 </style>

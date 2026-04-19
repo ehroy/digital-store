@@ -139,7 +139,7 @@
       <span>Digital Murah</span>
     </a>
     <span class="nav-tag">Digital goods, clean checkout</span>
-    <div style="display:flex;gap:8px;margin-left:auto">
+    <div class="nav-actions">
       <ThemeToggle />
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
       <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
@@ -272,13 +272,13 @@
             </div>
           {/if}
 
-          <div style="display:grid;grid-template-columns:1fr auto;gap:7px">
+          <div class="product-actions">
             <button class="btn btn-primary"
               disabled={!stock.canBuy || !product.active}
               on:click={() => buyProduct = product}>
               {!stock.canBuy ? 'Tidak Tersedia' : 'Beli Sekarang'}
             </button>
-            <a href="/product/{product.id}" class="btn" style="padding:8px 12px;font-size:13px;white-space:nowrap">
+            <a href="/product/{product.id}" class="btn detail-btn">
               Detail
             </a>
           </div>
@@ -331,10 +331,12 @@
 
 <style>
 .store-nav { position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem; backdrop-filter: blur(14px); }
-.nav-inner { max-width:1100px;margin:0 auto;height:64px;display:flex;align-items:center;gap:10px; }
+.nav-inner { max-width:1100px;margin:0 auto;min-height:64px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0; }
 .nav-brand { display:flex;align-items:center;gap:8px;font-weight:700;font-size:15.5px; letter-spacing:-0.02em; }
 .nav-logo { background:linear-gradient(135deg,var(--primary),var(--primary-2));border-radius:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px; box-shadow:0 10px 20px rgba(21,93,252,0.18); color:var(--primary-fg); }
 .nav-tag { font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:999px;background:var(--surface-2); border:1px solid var(--border); }
+.nav-actions { display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;min-width:0; }
+.nav-actions :global(.btn) { white-space:nowrap; }
 .hero { padding:2.1rem 1rem 1.2rem; }
 .hero-panel {
   position:relative;overflow:hidden;
@@ -390,6 +392,8 @@
 .product-price { font-weight:700;color:var(--primary);font-size:16px; }
 .stock-badge { font-size:12px;display:flex;align-items:center;gap:4px; }
 .stock-dot { width:6px;height:6px;border-radius:50%;display:inline-block;animation:pulse-dot 2s ease-in-out infinite; }
+.product-actions { display:grid;grid-template-columns:1fr auto;gap:7px; }
+.detail-btn { padding:8px 12px;font-size:13px;white-space:nowrap; }
 .variant-badges { display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px; }
 .variant-pill { font-size:11px;padding:4px 8px;border-radius:999px;background:var(--surface-2);color:var(--text); border:0.5px solid var(--border); }
 .variant-pill.muted { color:var(--text-muted); }
@@ -435,6 +439,9 @@
 }
 
 @media (max-width: 640px) {
+  .nav-inner { align-items:flex-start; }
+  .nav-actions { width:100%; margin-left:0; justify-content:flex-start; }
+  .nav-actions :global(.btn), .nav-actions :global(button) { flex:1 1 calc(50% - 4px); }
   .store-container { padding-inline: 0.75rem; }
   .hero { padding-inline: 0.75rem; }
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -445,6 +452,9 @@
   .product-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
   .variant-badges { gap: 4px; }
   .variant-pill { font-size: 10px; padding: 3px 7px; }
+  .product-actions { grid-template-columns: 1fr; }
+  .product-actions :global(.btn) { width: 100%; }
+  .detail-btn { padding: 8px 10px; }
   .nav-inner { height: 58px; }
   .hero-copy h1 { font-size: 24px; }
   .hero-copy p { font-size: 13px; }
