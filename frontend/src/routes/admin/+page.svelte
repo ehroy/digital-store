@@ -14,12 +14,12 @@
   });
 
   $: stats = data ? [
-    { label: 'Total Pemasukan', value: IDR(data.total_revenue), accent: '#0f4fd6', hint: 'Akumulasi omzet' },
+     { label: 'Total Pemasukan', value: IDR(data.total_revenue), accent: 'var(--primary)', hint: 'Akumulasi omzet' },
     { label: 'Total Pesanan', value: data.total_orders, hint: 'Semua transaksi' },
-    { label: 'Pesanan Lunas', value: data.paid_orders, accent: '#166534', hint: 'Siap diproses' },
-    { label: 'Menunggu Bayar', value: data.pending_orders, accent: data.pending_orders > 0 ? '#b45309' : undefined, hint: 'Butuh pembayaran' },
+     { label: 'Pesanan Lunas', value: data.paid_orders, accent: 'var(--success-fg)', hint: 'Siap diproses' },
+     { label: 'Menunggu Bayar', value: data.pending_orders, accent: data.pending_orders > 0 ? 'var(--warning-fg)' : undefined, hint: 'Butuh pembayaran' },
     { label: 'Produk Aktif', value: data.active_products, hint: 'Siap dijual' },
-    { label: 'Stok Hampir Habis', value: data.low_stock, accent: data.low_stock > 0 ? '#b42318' : undefined, hint: 'Perlu dicek' },
+     { label: 'Stok Hampir Habis', value: data.low_stock, accent: data.low_stock > 0 ? 'var(--danger-fg)' : undefined, hint: 'Perlu dicek' },
   ] : [];
 
   $: maxRev = data?.revenue_by_category?.length
@@ -129,16 +129,16 @@
   gap: 16px;
   margin-bottom: 16px;
   padding: 1.35rem 1.35rem 1.25rem;
-  background:
-    radial-gradient(circle at top right, rgba(21,93,252,0.16), transparent 32%),
-    linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+    background:
+     radial-gradient(circle at top right, rgba(21,93,252,0.16), transparent 32%),
+     linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
 }
 .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
 .hero-title { font-size: 26px; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 8px; font-weight: 700; }
 .hero-desc { color: var(--text-muted); max-width: 58ch; }
 .hero-card-mini {
   align-self: stretch; border-radius: 16px; padding: 1rem 1rem 0.95rem;
-  background: rgba(15,23,42,0.03); border: 1px solid var(--border);
+  background: var(--surface-2); border: 1px solid var(--border);
   display:flex; flex-direction:column; justify-content:flex-end; gap:4px;
 }
 .mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-hint); }
@@ -156,9 +156,9 @@
   font-size: 13px; margin-bottom: 5px;
 }
 .rev-track {
-  height: 7px; background: #e8edf4; border-radius: 99px; overflow: hidden;
+  height: 7px; background: var(--surface-2); border-radius: 99px; overflow: hidden;
 }
-.rev-fill { height: 100%; background: linear-gradient(90deg, #155dfc, #60a5fa); border-radius: 99px; transition: width 0.4s; }
+.rev-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-2)); border-radius: 99px; transition: width 0.4s; }
 .stat-card-hero { position: relative; overflow: hidden; }
 .stat-card-hero::after {
   content: '';

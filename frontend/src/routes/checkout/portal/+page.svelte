@@ -97,7 +97,7 @@
     <!-- ── SUKSES ─────────────────────────── -->
     <div class="portal-card">
       <div class="success-anim">✅</div>
-      <h2 style="font-size:20px;font-weight:500;margin:14px 0 6px;color:#2f5e0f">Pembayaran Berhasil!</h2>
+      <h2 style="font-size:20px;font-weight:500;margin:14px 0 6px;color:var(--success-fg)">Pembayaran Berhasil!</h2>
       <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:18px">Produk sedang dikirim otomatis.</p>
       <div class="invoice-badge">{invoiceNo}</div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:10px">Mengalihkan…</p>
@@ -107,7 +107,7 @@
     <!-- ── GAGAL ──────────────────────────── -->
     <div class="portal-card">
       <div style="font-size:48px;margin-bottom:14px">❌</div>
-      <h2 style="font-size:18px;font-weight:500;margin-bottom:8px;color:#8c2626">
+      <h2 style="font-size:18px;font-weight:500;margin-bottom:8px;color:var(--danger-fg)">
         {orderStatus === 'expired' ? 'Waktu Bayar Habis' : 'Pembayaran Gagal'}
       </h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
@@ -136,7 +136,7 @@
       {:else if portalClosed}
         <!-- Tab sudah ditutup pengguna -->
         <div class="instruction-box" style="text-align:left">
-          <div style="font-size:13px;font-weight:500;color:#854F0B;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:500;color:var(--warning-fg);margin-bottom:6px">
             ⚠️ Halaman pembayaran ditutup
           </div>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
@@ -196,54 +196,54 @@
 .portal-wrap {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #f0f6fd 0%, #f8f8f6 100%);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg) 100%);
   padding: 1rem;
 }
 .portal-card {
-  background: #fff;
+  background: var(--surface);
   border: 0.5px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 2.5rem 2rem;
   max-width: 420px; width: 100%;
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow);
 }
 .brand {
   display: flex; align-items: center; justify-content: center;
   gap: 8px; font-weight: 500; font-size: 15px; margin-bottom: 1.5rem;
 }
 .brand-logo {
-  background: #0d5fa8; border-radius: 8px;
+  background: linear-gradient(135deg,var(--primary),var(--primary-2)); border-radius: 8px;
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center; font-size: 14px;
 }
 .status-ring {
   display: inline-flex; align-items: center; gap: 8px;
-  background: #FAEEDA; color: #854F0B;
+  background: var(--warning-bg); color: var(--warning-fg);
   padding: 8px 18px; border-radius: 999px;
   font-size: 13.5px; font-weight: 500; margin-bottom: 16px;
 }
 .pulse-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #854F0B;
+  background: var(--warning-fg);
   animation: blink 1.4s ease-in-out infinite;
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 .invoice-badge {
   display: inline-block;
   font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
-  background: #f0f4ff; color: #0d5fa8;
+  background: var(--primary-bg); color: var(--primary);
   padding: 5px 14px; border-radius: 999px; margin-bottom: 16px;
 }
 .instruction-box {
-  background: #f8f8f6;
+  background: var(--surface-2);
   border-radius: var(--radius);
   padding: 14px 16px; margin-bottom: 14px;
 }
 .check-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; padding: 8px 12px;
-  background: #f0f4ff; border-radius: var(--radius);
+  background: var(--primary-bg); border-radius: var(--radius);
 }
 .success-anim {
   font-size: 56px;

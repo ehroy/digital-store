@@ -8,7 +8,7 @@
   function overlay(e) { if (e.target === e.currentTarget) dispatch('close'); }
 </script>
 
-<div class="modal-overlay" on:click={overlay} role="dialog" aria-modal="true">
+<div class="modal-overlay" on:click={overlay} on:keydown={(e)=>e.key==='Escape'&&dispatch('close')} role="dialog" aria-modal="true" tabindex="-1">
   <div class="modal-box" style="max-width:480px">
     <div class="modal-header">
       <span class="modal-title">Invoice Pembelian</span>
@@ -52,7 +52,7 @@
           {/each}
           <tr class="total-row">
             <td>Total</td>
-            <td style="color:#0d5fa8;font-size:18px">{IDR(order.total)}</td>
+            <td style="color:var(--primary);font-size:18px">{IDR(order.total)}</td>
           </tr>
         </tbody>
       </table>
@@ -72,7 +72,7 @@
 <style>
 .success-banner {
   text-align: center; padding: 1.25rem;
-  background: #f8f8f6; border-radius: var(--radius);
+  background: var(--surface-2); border-radius: var(--radius);
   margin-bottom: 16px;
 }
 .invoice-box {
@@ -89,9 +89,9 @@
 .inv-table td { padding: 8px 16px; font-size: 13px; }
 .inv-table td.l { color: var(--text-muted); width: 40%; }
 .inv-table td.v { text-align: right; font-weight: 400; }
-.total-row td { font-weight: 500; font-size: 15px; padding: 12px 16px; border-top: 2px solid #0d5fa8; }
+.total-row td { font-weight: 500; font-size: 15px; padding: 12px 16px; border-top: 2px solid var(--primary); }
 .status-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 16px; background: #f8f8f6;
+  padding: 10px 16px; background: var(--surface-2);
 }
 </style>

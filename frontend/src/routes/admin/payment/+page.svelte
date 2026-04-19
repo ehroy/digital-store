@@ -79,7 +79,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)">
         <div class="form-row-2">
           <div>
-            <label class="field-label">API Key *</label>
+            <div class="field-label">API Key *</div>
             <input class="input mono" bind:value={cfg.sayabayar_api_key}
               placeholder="sk_live_xxxxxxxxxxxx" type="password" autocomplete="off"/>
             <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
@@ -87,7 +87,7 @@
             </div>
           </div>
           <div>
-            <label class="field-label">Channel Preference</label>
+            <div class="field-label">Channel Preference</div>
             <select class="input" bind:value={cfg.sayabayar_channel}>
               <option value="platform">platform — SayaBayar pilih metode terbaik</option>
               <option value="client">client — dana langsung ke rekening (plan berbayar)</option>
@@ -107,7 +107,7 @@
         </div>
 
         <div style="max-width:280px">
-          <label class="field-label">Batas Waktu Pembayaran (jam)</label>
+          <div class="field-label">Batas Waktu Pembayaran (jam)</div>
           <input class="input" type="number" min="1" max="168" bind:value={cfg.payment_expire_hours}/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
             Gateway QRIS sekarang expired otomatis dalam 30 menit.
@@ -148,23 +148,23 @@
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)">
         <div class="form-row-2">
           <div>
-            <label class="field-label">API Key *</label>
+            <div class="field-label">API Key *</div>
             <input class="input mono" bind:value={cfg.dompetx_api_key}
               placeholder="dompetx_live_xxxx" type="password" autocomplete="off"/>
           </div>
           <div>
-            <label class="field-label">Secret Key (verifikasi webhook) *</label>
+            <div class="field-label">Secret Key (verifikasi webhook) *</div>
             <input class="input mono" bind:value={cfg.dompetx_secret_key}
               placeholder="••••••••••••" type="password" autocomplete="off"/>
           </div>
         </div>
         <div class="form-row-2">
           <div>
-            <label class="field-label">Batas Waktu Pembayaran (jam)</label>
+            <div class="field-label">Batas Waktu Pembayaran (jam)</div>
             <input class="input" type="number" min="1" max="72" bind:value={cfg.payment_expire_hours}/>
           </div>
           <div>
-            <label class="field-label">Mode</label>
+            <div class="field-label">Mode</div>
             <select class="input" bind:value={cfg.dompetx_sandbox}>
               <option value={true}>Sandbox (Testing)</option>
               <option value={false}>Production (Live)</option>
@@ -195,14 +195,14 @@
 
     <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:12px">
       <div class="form-row-3">
-        <div><label class="field-label">Nama Bank</label><input class="input" bind:value={cfg.bank_name} placeholder="BCA, Mandiri…"/></div>
-        <div><label class="field-label">Nomor Rekening</label><input class="input" bind:value={cfg.bank_no} placeholder="0000000000"/></div>
-        <div><label class="field-label">Atas Nama</label><input class="input" bind:value={cfg.bank_acc}/></div>
+        <div><div class="field-label">Nama Bank</div><input class="input" bind:value={cfg.bank_name} placeholder="BCA, Mandiri…"/></div>
+        <div><div class="field-label">Nomor Rekening</div><input class="input" bind:value={cfg.bank_no} placeholder="0000000000"/></div>
+        <div><div class="field-label">Atas Nama</div><input class="input" bind:value={cfg.bank_acc}/></div>
       </div>
       <div class="form-row-3">
-        <div><label class="field-label">DANA</label><input class="input" bind:value={cfg.dana} placeholder="08xxxxxxxxxx"/></div>
-        <div><label class="field-label">GoPay</label><input class="input" bind:value={cfg.gopay} placeholder="08xxxxxxxxxx"/></div>
-        <div><label class="field-label">OVO</label><input class="input" bind:value={cfg.ovo} placeholder="08xxxxxxxxxx"/></div>
+        <div><div class="field-label">DANA</div><input class="input" bind:value={cfg.dana} placeholder="08xxxxxxxxxx"/></div>
+        <div><div class="field-label">GoPay</div><input class="input" bind:value={cfg.gopay} placeholder="08xxxxxxxxxx"/></div>
+        <div><div class="field-label">OVO</div><input class="input" bind:value={cfg.ovo} placeholder="08xxxxxxxxxx"/></div>
       </div>
       <div style="display:flex;gap:16px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
@@ -213,7 +213,7 @@
         </label>
       </div>
       {#if cfg.crypto}
-        <div><label class="field-label">Alamat Wallet</label>
+        <div><div class="field-label">Alamat Wallet</div>
           <input class="input mono" bind:value={cfg.crypto_addr} placeholder="bc1q…"/></div>
       {/if}
       <div style="font-size:11px;color:var(--text-muted)">
@@ -223,7 +223,7 @@
   </div>
 
   <!-- SMTP reminder -->
-  <div style="background:#f8f8f6;border-radius:var(--radius);padding:11px 14px;font-size:13px;color:var(--text-muted)">
+  <div style="background:var(--surface-2);border-radius:var(--radius);padding:11px 14px;font-size:13px;color:var(--text-muted)">
     📧 Email invoice dikonfigurasi via <code>.env</code> backend:
     <code>SMTP_HOST</code> · <code>SMTP_USER</code> · <code>SMTP_PASS</code>
   </div>
@@ -234,7 +234,7 @@
     <button class="btn btn-primary" on:click={save} disabled={saving}>
       {saving?'Menyimpan…':'Simpan Pengaturan'}
     </button>
-    {#if saved}<span style="color:#2f5e0f;font-size:13px;font-weight:500">✓ Tersimpan!</span>{/if}
+    {#if saved}<span style="color:var(--success-fg);font-size:13px;font-weight:500">✓ Tersimpan!</span>{/if}
   </div>
 </div>
 {/if}
@@ -242,15 +242,15 @@
 <style>
 .status-bar {
   display:flex;align-items:center;gap:8px;
-  padding:10px 14px;background:var(--color-background-secondary,#f8f8f6);
+  padding:10px 14px;background:var(--surface-2);
   border-radius:var(--radius);font-size:13px;
 }
 .gw-card {
   border:0.5px solid var(--border);border-radius:var(--radius-lg);
-  padding:1.15rem 1.25rem;background:#fff;
+  padding:1.15rem 1.25rem;background:var(--surface);
   transition:border-color 0.15s;
 }
-.gw-active { border-color:#0d5fa8;border-width:1.5px; }
+  .gw-active { border-color:var(--primary);border-width:1.5px; }
 .gw-header { display:flex;justify-content:space-between;align-items:flex-start;gap:12px; }
 
 /* Toggle switch */
@@ -258,24 +258,24 @@
 .switch input { opacity:0;width:0;height:0; }
 .slider {
   position:absolute;cursor:pointer;inset:0;
-  background:#ccc;border-radius:24px;transition:.2s;
+  background:var(--border-md);border-radius:24px;transition:.2s;
 }
 .slider:before {
   content:'';position:absolute;width:18px;height:18px;
-  left:3px;bottom:3px;background:#fff;
+  left:3px;bottom:3px;background:var(--surface);
   border-radius:50%;transition:.2s;
 }
-input:checked + .slider { background:#0d5fa8; }
+input:checked + .slider { background:var(--primary); }
 input:checked + .slider:before { transform:translateX(18px); }
 
 .webhook-box {
-  background:#f0f6fd;border-radius:var(--radius);
-  padding:11px 14px;font-size:12.5px;color:#185FA5;
+  background:var(--info-bg);border-radius:var(--radius);
+  padding:11px 14px;font-size:12.5px;color:var(--info-fg);
 }
 .webhook-url {
   display:block;
   font-family:'JetBrains Mono',monospace;font-size:12px;
-  background:#dceeff;color:#0d5fa8;
+  background:var(--primary-bg);color:var(--primary);
   padding:5px 10px;border-radius:5px;margin-top:4px;
   word-break:break-all;
 }

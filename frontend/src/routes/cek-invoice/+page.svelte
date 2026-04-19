@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR, fmtDateTime, STATUS_LABEL, PAY_LABEL } from '$lib/utils.js';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
   import { toDataURL } from 'qrcode';
 
   let invoiceNo = '';
@@ -76,13 +77,13 @@
   }
 
   const SC = {
-    paid:            { icon:'✅', color:'#2f5e0f', bg:'#EAF3DE' },
-    pending:         { icon:'⏳', color:'#854F0B', bg:'#FAEEDA' },
-    waiting_payment: { icon:'⏳', color:'#854F0B', bg:'#FAEEDA' },
-    script_executed: { icon:'⚙️', color:'#185FA5', bg:'#E6F1FB' },
-    expired:         { icon:'⌛', color:'#8c2626', bg:'#FCEBEB' },
-    failed:          { icon:'❌', color:'#8c2626', bg:'#FCEBEB' },
-    cancelled:       { icon:'✗',  color:'#8c2626', bg:'#FCEBEB' },
+    paid:            { icon:'✅', color:'var(--success-fg)', bg:'var(--success-bg)' },
+    pending:         { icon:'⏳', color:'var(--warning-fg)', bg:'var(--warning-bg)' },
+    waiting_payment: { icon:'⏳', color:'var(--warning-fg)', bg:'var(--warning-bg)' },
+    script_executed: { icon:'⚙️', color:'var(--info-fg)', bg:'var(--info-bg)' },
+    expired:         { icon:'⌛', color:'var(--danger-fg)', bg:'var(--danger-bg)' },
+    failed:          { icon:'❌', color:'var(--danger-fg)', bg:'var(--danger-bg)' },
+    cancelled:       { icon:'✗',  color:'var(--danger-fg)', bg:'var(--danger-bg)' },
   };
   const SC_LABEL = {
     paid:'Lunas', waiting_payment:'Menunggu Pembayaran', verifying:'Pembayaran Diverifikasi', script_executed:'Sedang Diproses',
@@ -92,12 +93,13 @@
 
 <svelte:head><title>Cek Invoice — Digital Murah</title></svelte:head>
 
-<nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem">
+<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)">
   <div style="max-width:700px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
-      <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
+      <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
+    <ThemeToggle />
     <span style="margin-left:auto;font-size:13px;color:var(--text-muted)">Cek Invoice</span>
   </div>
 </nav>
@@ -114,7 +116,7 @@
 
     <div style="display:flex;flex-direction:column;gap:10px">
       <div>
-        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nomor Invoice</label>
+        <div style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nomor Invoice</div>
         <input class="input mono" placeholder="INV-20260410-123456"
           bind:value={invoiceNo}
           on:keydown={(e) => e.key === 'Enter' && lookup()}
@@ -122,9 +124,9 @@
         />
       </div>
       <div>
-        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">
+        <div style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">
           Email Pembelian <span style="color:#8c2626">*</span>
-        </label>
+        </div>
         <input class="input" type="email" placeholder="email@example.com"
           bind:value={email}
           on:keydown={(e) => e.key === 'Enter' && lookup()}
@@ -192,23 +194,23 @@
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse">
-        {#each [
-          ['Produk', result.product_name],
-          ['Pembeli', result.buyer_name],
-          ['Jumlah', `${result.qty} pcs`],
-          ['Metode Bayar', PAY_LABEL[result.pay_method] || result.pay_method],
-        ...(result.gateway_provider ? [['Gateway', result.gateway_provider.toUpperCase()]] : []),
-      ] as [l, v], i}
-          <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
-            <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:40%">{l}</td>
-            <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
-          </tr>
-        {/each}
         <tbody>
-          <tr style="border-top:2px solid #0d5fa8">
-          <td style="padding:11px 16px;font-weight:600">Total</td>
-          <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:#0d5fa8">{IDR(result.total)}</td>
-        </tr>
+          {#each [
+            ['Produk', result.product_name],
+            ['Pembeli', result.buyer_name],
+            ['Jumlah', `${result.qty} pcs`],
+            ['Metode Bayar', PAY_LABEL[result.pay_method] || result.pay_method],
+          ...(result.gateway_provider ? [['Gateway', result.gateway_provider.toUpperCase()]] : []),
+        ] as [l, v], i}
+            <tr style="background:{i%2===0?'var(--surface-2)':'var(--surface)'}">
+              <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:40%">{l}</td>
+              <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
+            </tr>
+          {/each}
+          <tr style="border-top:2px solid var(--primary)">
+            <td style="padding:11px 16px;font-weight:600">Total</td>
+            <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:var(--primary)">{IDR(result.total)}</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -254,7 +256,7 @@
     </div>
 
     <div style="margin-top:10px;text-align:center">
-      <a href="/komplain?invoice={result.invoice_no}" style="font-size:12.5px;color:#0d5fa8;font-weight:500">
+        <a href="/komplain?invoice={result.invoice_no}" style="font-size:12.5px;color:var(--primary);font-weight:500">
         Komplain ke WhatsApp Admin →
       </a>
     </div>

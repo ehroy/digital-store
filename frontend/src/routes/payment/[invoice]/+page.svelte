@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR, fmtDateTime, PAY_LABEL } from '$lib/utils.js';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
   import { toDataURL } from 'qrcode';
 
   const invoiceNo = $page.params.invoice;
@@ -88,13 +89,13 @@
   onDestroy(stopPolling);
 
   const SC = {
-    paid:            { icon:'✅', color:'#2f5e0f', bg:'#EAF3DE', title:'Pembayaran Dikonfirmasi!',   desc:'Produk Anda sudah siap di bawah.' },
-    waiting_payment: { icon:'⏳', color:'#854F0B', bg:'#FAEEDA', title:'Menunggu Pembayaran',        desc:'Halaman ini diperbarui otomatis.' },
-    verifying:       { icon:'🔎', color:'#185FA5', bg:'#E6F1FB', title:'Pembayaran Sedang Diverifikasi', desc:'Sistem sedang memastikan pembayaran.' },
-    script_executed: { icon:'⚙️', color:'#185FA5', bg:'#E6F1FB', title:'Pesanan Diproses',          desc:'Tim akan menghubungi dalam 1×24 jam.' },
-    expired:         { icon:'⌛', color:'#8c2626', bg:'#FCEBEB', title:'Waktu Pembayaran Habis',    desc:'Pesanan otomatis dibatalkan.' },
-    failed:          { icon:'❌', color:'#8c2626', bg:'#FCEBEB', title:'Pembayaran Gagal',          desc:'Silakan coba lagi.' },
-    cancelled:       { icon:'✗',  color:'#8c2626', bg:'#FCEBEB', title:'Pesanan Dibatalkan',        desc:'Hubungi kami jika ada pertanyaan.' },
+    paid:            { icon:'✅', color:'var(--success-fg)', bg:'var(--success-bg)', title:'Pembayaran Dikonfirmasi!',   desc:'Produk Anda sudah siap di bawah.' },
+    waiting_payment: { icon:'⏳', color:'var(--warning-fg)', bg:'var(--warning-bg)', title:'Menunggu Pembayaran',        desc:'Halaman ini diperbarui otomatis.' },
+    verifying:       { icon:'🔎', color:'var(--info-fg)', bg:'var(--info-bg)', title:'Pembayaran Sedang Diverifikasi', desc:'Sistem sedang memastikan pembayaran.' },
+    script_executed: { icon:'⚙️', color:'var(--info-fg)', bg:'var(--info-bg)', title:'Pesanan Diproses',          desc:'Tim akan menghubungi dalam 1×24 jam.' },
+    expired:         { icon:'⌛', color:'var(--danger-fg)', bg:'var(--danger-bg)', title:'Waktu Pembayaran Habis',    desc:'Pesanan otomatis dibatalkan.' },
+    failed:          { icon:'❌', color:'var(--danger-fg)', bg:'var(--danger-bg)', title:'Pembayaran Gagal',          desc:'Silakan coba lagi.' },
+    cancelled:       { icon:'✗',  color:'var(--danger-fg)', bg:'var(--danger-bg)', title:'Pesanan Dibatalkan',        desc:'Hubungi kami jika ada pertanyaan.' },
   };
 
   $: timeLeft = (() => {
@@ -110,12 +111,13 @@
 
 <svelte:head><title>Pembayaran {invoiceNo} — Digital Murah</title></svelte:head>
 
-<nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100">
+<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)">
   <div style="max-width:800px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
-      <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
+      <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
+    <ThemeToggle />
     <span class="mono" style="margin-left:auto;font-size:12px;color:var(--text-muted)">{invoiceNo}</span>
   </div>
 </nav>
@@ -179,22 +181,22 @@
         <div class="card" style="padding:0;overflow:hidden">
           <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">Detail Pesanan</div>
           <table style="width:100%;border-collapse:collapse">
-            {#each [
-              ['Produk', data.product_name],
-              ['Pembeli', data.buyer_name],
-              ['Jumlah', `${data.qty} pcs`],
-              ['Metode', PAY_LABEL[data.pay_method] || data.pay_method],
-            ] as [l,v], i}
-              <tr style="background:{i%2===0?'#f9f9f9':'#fff'}">
-                <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:38%">{l}</td>
-                <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
-              </tr>
-            {/each}
             <tbody>
-              <tr style="border-top:2px solid #0d5fa8">
-              <td style="padding:11px 16px;font-weight:600">Total</td>
-              <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:#0d5fa8">{IDR(data.total)}</td>
-            </tr>
+              {#each [
+                ['Produk', data.product_name],
+                ['Pembeli', data.buyer_name],
+                ['Jumlah', `${data.qty} pcs`],
+                ['Metode', PAY_LABEL[data.pay_method] || data.pay_method],
+              ] as [l,v], i}
+                <tr style="background:{i%2===0?'var(--surface-2)':'var(--surface)'}">
+                  <td style="padding:8px 16px;font-size:12px;color:var(--text-muted);width:38%">{l}</td>
+                  <td style="padding:8px 16px;font-size:13px;text-align:right">{v}</td>
+                </tr>
+              {/each}
+              <tr style="border-top:2px solid var(--primary)">
+                <td style="padding:11px 16px;font-weight:600">Total</td>
+                <td style="padding:11px 16px;text-align:right;font-weight:700;font-size:19px;color:var(--primary)">{IDR(data.total)}</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -204,14 +206,14 @@
             <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border)">Pembayaran QRIS</div>
             <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:12px">
               {#if qrisImage || qrisDataUrl}
-                <img src={qrisImage || qrisDataUrl} alt="QRIS" style="width:100%;max-width:280px;margin:0 auto;border-radius:12px;border:0.5px solid var(--border);background:#fff;padding:8px" />
+                <img src={qrisImage || qrisDataUrl} alt="QRIS" style="width:100%;max-width:280px;margin:0 auto;border-radius:12px;border:0.5px solid var(--border);background:var(--surface);padding:8px" />
               {/if}
               {#if !qrisImage && !qrisString && paymentLink}
                 <div class="info-box">QRIS belum muncul dari gateway. Gunakan link berikut untuk melanjutkan pembayaran.</div>
               {/if}
               {#if paymentLink}
                 <a href={paymentLink} target="_blank" rel="noopener"
-                  style="display:inline-flex;justify-content:center;background:#0d5fa8;color:#fff;padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">
+                  style="display:inline-flex;justify-content:center;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">
                   🔗 Buka Halaman Bayar
                 </a>
               {/if}
@@ -230,17 +232,17 @@
       <div>
         {#if statusKey === 'paid' && data.delivered_items?.length}
           <div class="card" style="padding:0;overflow:hidden">
-            <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border);background:#EAF3DE;color:#2f5e0f">
+              <div style="padding:0.9rem 1.25rem;font-weight:500;font-size:14px;border-bottom:0.5px solid var(--border);background:var(--success-bg);color:var(--success-fg)">
               ✅ Produk Anda
             </div>
             <div style="padding:0.75rem 1rem;display:flex;flex-direction:column;gap:8px">
               {#each data.delivered_items as item, i}
-                <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f8f8f6;border-radius:var(--radius)">
-                  <div style="width:22px;height:22px;border-radius:50%;background:#0d5fa8;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">{i+1}</div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surface-2);border-radius:var(--radius)">
+                  <div style="width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-fg);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">{i+1}</div>
                   {#if isURL(item)}
                     <div style="flex:1;min-width:0">
                       <a href={item} target="_blank" rel="noopener"
-                        style="display:inline-flex;align-items:center;gap:6px;background:#0d5fa8;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none">
+                        style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none">
                         📥 Download
                       </a>
                       <div class="mono" style="font-size:10.5px;color:var(--text-muted);margin-top:5px;word-break:break-all">{item}</div>
@@ -248,13 +250,13 @@
                   {:else}
                     <div style="flex:1">
                       <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Nomer & Pin Untuk Login / Email & Password  :</div>
-                      <code style="display:block;font-family:'JetBrains Mono',monospace;font-size:13px;background:#fff;border:0.5px solid var(--border);padding:8px 12px;border-radius:6px;word-break:break-all;user-select:all">{item}</code>
+                      <code style="display:block;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface);border:0.5px solid var(--border);padding:8px 12px;border-radius:6px;word-break:break-all;user-select:all">{item}</code>
                     </div>
                   {/if}
                 </div>
               {/each}
             </div>
-            <div style="padding:0.75rem 1.25rem;background:#f0f8e8;border-top:0.5px solid var(--border);font-size:12px;color:#3B6D11">
+            <div style="padding:0.75rem 1.25rem;background:var(--success-bg);border-top:0.5px solid var(--border);font-size:12px;color:var(--success-fg)">
               💡 Item juga dikirim ke email Anda.
             </div>
           </div>
@@ -290,7 +292,7 @@
         </div>
 
         <div style="margin-top:8px;text-align:center">
-          <a href="/komplain?invoice={invoiceNo}" style="font-size:12.5px;color:#0d5fa8;font-weight:500">
+          <a href="/komplain?invoice={invoiceNo}" style="font-size:12.5px;color:var(--primary);font-weight:500">
             Komplain ke WhatsApp Admin →
           </a>
         </div>
@@ -302,7 +304,7 @@
 <style>
 .pay-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
 @media(max-width:640px) { .pay-grid { grid-template-columns:1fr; } }
-.info-box { background:#E6F1FB;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#185FA5; }
+.info-box { background:var(--info-bg);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--info-fg); }
 .pulse { font-size:40px;display:inline-block;animation:pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.7} }
 </style>

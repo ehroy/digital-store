@@ -74,7 +74,7 @@
   function overlay(e) { if (e.target === e.currentTarget) dispatch('close'); }
 </script>
 
-<div class="modal-overlay" on:click={overlay} role="dialog" aria-modal="true">
+<div class="modal-overlay" on:click={overlay} on:keydown={(e)=>e.key==='Escape'&&dispatch('close')} role="dialog" aria-modal="true" tabindex="-1">
   <div class="modal-box" style="max-width:500px">
     <div class="modal-header">
       <span class="modal-title">Konfirmasi &amp; Pembayaran</span>
@@ -90,7 +90,7 @@
         {#if data.variant}
           <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:3px">{prettyVariant(data.variant)}</div>
         {/if}
-        <div style="font-weight:500;font-size:20px;color:#0d5fa8">{IDR(data.total)}</div>
+        <div style="font-weight:500;font-size:20px;color:var(--primary)">{IDR(data.total)}</div>
       </div>
       <span style="font-size:30px">{data.product.icon}</span>
     </div>
@@ -112,7 +112,7 @@
       </div>
 
       {#if gatewayProvider === 'dompetx'}
-        <div class="info-box" style="margin-bottom:10px;background:#FFF7ED;color:#9A3412">
+        <div class="info-box" style="margin-bottom:10px;background:var(--warning-bg);color:var(--warning-fg)">
           DompetX dapat menambahkan fee layanan sesuai ketentuan gateway. Total akhir akan mengikuti nominal dari portal pembayaran.
         </div>
       {/if}
@@ -133,7 +133,7 @@
 </div>
 
 <style>
-.order-summary { display:flex;justify-content:space-between;align-items:center;background:#f8f8f6;border-radius:var(--radius);padding:12px 16px;margin-bottom:18px; }
-.qris-card { border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;background:#fff;margin-bottom:12px; }
-.info-box { background:#E6F1FB;border-radius:var(--radius);padding:9px 13px;font-size:12.5px;color:#185FA5; }
+.order-summary { display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px; }
+.qris-card { border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;background:var(--surface);margin-bottom:12px; }
+.info-box { background:var(--info-bg);border-radius:var(--radius);padding:9px 13px;font-size:12.5px;color:var(--info-fg); }
 </style>

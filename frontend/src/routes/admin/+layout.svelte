@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { get } from 'svelte/store';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
 
   onMount(() => {
     if (!get(authToken)) goto('/login');
@@ -40,6 +41,7 @@
     </div>
     <div class="header-actions">
       <a href="/" class="btn btn-sm">Toko</a>
+      <ThemeToggle />
       <button class="btn btn-sm btn-danger" on:click={logout}>Logout</button>
     </div>
   </header>
@@ -70,7 +72,7 @@
 .admin-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .admin-header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(255,255,255,0.82);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border);
   padding: 0 1.5rem;
@@ -79,17 +81,18 @@
 .brand-wrap { display:flex; flex-direction:column; gap:2px; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; letter-spacing:-0.02em; }
 .brand-logo {
-  background: linear-gradient(135deg, var(--primary), #60a5fa);
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
   border-radius: 10px;
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   font-size: 14px; box-shadow: 0 10px 20px rgba(21,93,252,0.2);
+  color: var(--primary-fg);
 }
 .brand-sub { font-size: 11.5px; color: var(--text-muted); margin-left: 38px; margin-top: -2px; }
 .header-actions { display:flex;gap:8px;margin-left:auto; }
 .admin-body { display: flex; flex: 1; }
 .sidebar {
   width: 214px; flex-shrink: 0;
-  background: rgba(255,255,255,0.75);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
   backdrop-filter: blur(18px);
   border-right: 1px solid var(--border);
   padding: 1rem 0.85rem;
@@ -107,8 +110,8 @@
   transition: background 0.15s;
   margin-bottom: 2px;
 }
-.sidebar-item:hover { background: rgba(21,93,252,0.06); }
-.sidebar-item.active { background: linear-gradient(135deg, rgba(21,93,252,0.12), rgba(96,165,250,0.14)); color: #0f4fd6; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(21,93,252,0.08); }
+.sidebar-item:hover { background: var(--surface-2); }
+.sidebar-item.active { background: linear-gradient(135deg, var(--primary-bg), color-mix(in srgb, var(--primary-bg) 70%, var(--surface))); color: var(--primary); font-weight: 600; box-shadow: inset 0 0 0 1px var(--border); }
 .sidebar-icon { font-size: 14px; }
 .admin-main {
   flex: 1; min-width: 0;

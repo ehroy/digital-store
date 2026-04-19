@@ -117,7 +117,7 @@
 </div>
 
 {#if pullResult}
-  <div style="margin-bottom:14px;padding:12px 14px;border-radius:var(--radius);background:{pullResult.status==='success'?'#EAF3DE':pullResult.status==='partial'?'#FAEEDA':'#FCEBEB'};color:{pullResult.status==='success'?'#2f5e0f':pullResult.status==='partial'?'#854F0B':'#8c2626'};font-size:13px">
+      <div style="margin-bottom:14px;padding:12px 14px;border-radius:var(--radius);background:{pullResult.status==='success'?'var(--success-bg)':pullResult.status==='partial'?'var(--warning-bg)':'var(--danger-bg)'};color:{pullResult.status==='success'?'var(--success-fg)':pullResult.status==='partial'?'var(--warning-fg)':'var(--danger-fg)'};font-size:13px">
     <strong>{pullResult.provider}:</strong> {pullResult.message}
     {#if pullResult.count > 0}<span style="margin-left:6px">· {pullResult.count} item ditambahkan</span>{/if}
     <button style="float:right;background:none;border:none;cursor:pointer;color:inherit;font-size:16px" on:click={()=>pullResult=null}>×</button>
@@ -140,7 +140,7 @@
       {#each providers as p (p.id)}
         <div class="card" style="display:flex;align-items:flex-start;gap:14px">
           <!-- Icon type -->
-          <div style="width:40px;height:40px;border-radius:var(--radius);background:{p.type==='http_api'?'#E6F1FB':'#EAF3DE'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+          <div style="width:40px;height:40px;border-radius:var(--radius);background:{p.type==='http_api'?'var(--info-bg)':'var(--success-bg)'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
             {p.type === 'http_api' ? '🔗' : '📄'}
           </div>
 
@@ -172,7 +172,7 @@
           </div>
 
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-            <button class="btn btn-sm" style="background:#EAF3DE;color:#2f5e0f;border-color:#c0dda8;white-space:nowrap"
+            <button class="btn btn-sm" style="background:var(--success-bg);color:var(--success-fg);border-color:var(--border);white-space:nowrap"
               disabled={pulling === p.id} on:click={()=>pull(p)}>
               {pulling === p.id ? '⏳ Menarik…' : '⬇ Pull Sekarang'}
             </button>
@@ -215,7 +215,7 @@
 
 <!-- ════════ PROVIDER FORM MODAL ════════ -->
 {#if form !== null}
-  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&closeForm()} role="dialog">
+  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&closeForm()} on:keydown={(e)=>e.key==='Escape'&&closeForm()} role="dialog" tabindex="-1">
     <div class="modal-box" style="max-width:600px">
       <div class="modal-header">
         <span class="modal-title">{form.id?'Edit Provider':'Tambah Provider Baru'}</span>
@@ -225,11 +225,11 @@
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="form-row-2">
           <div>
-            <label class="field-label">Nama Provider *</label>
+            <div class="field-label">Nama Provider *</div>
             <input class="input" bind:value={form.name} placeholder="mis: Stok Supplier A" />
           </div>
           <div>
-            <label class="field-label">Produk Tujuan *</label>
+            <div class="field-label">Produk Tujuan *</div>
             <select class="input" bind:value={form.product_id}>
               {#each products.filter(p=>p.type==='stock') as p}
                 <option value={p.id}>{p.name}</option>
@@ -239,7 +239,7 @@
         </div>
 
         <div>
-          <label class="field-label">Tipe Provider</label>
+          <div class="field-label">Tipe Provider</div>
           <div style="display:flex;gap:8px">
             {#each [['http_api','🔗 HTTP API','Ambil dari REST API JSON'],['csv_url','📄 CSV URL','Ambil dari file CSV/text, satu item per baris']] as [t,l,d]}
               <div class="type-card {form.type===t?'selected':''}" on:click={()=>form.type=t} role="button" tabindex="0" on:keydown={(e)=>e.key==='Enter'&&(form.type=t)}>
@@ -251,20 +251,20 @@
         </div>
 
         <div>
-          <label class="field-label">URL *</label>
+          <div class="field-label">URL *</div>
           <input class="input mono" bind:value={form.api_url} placeholder="https://api.supplier.com/v1/stocks" />
         </div>
 
         {#if form.type === 'http_api'}
           <div class="form-row-2">
             <div>
-              <label class="field-label">Method</label>
+              <div class="field-label">Method</div>
               <select class="input" bind:value={form.api_method}>
                 <option>GET</option><option>POST</option><option>PUT</option>
               </select>
             </div>
             <div>
-              <label class="field-label">Headers (JSON)</label>
+              <div class="field-label">Headers (JSON)</div>
               <input class="input mono" bind:value={form.api_headers}
                 placeholder='{{"X-API-Key":"sk_xxx","Authorization":"Bearer token"}}' />
             </div>
@@ -272,17 +272,17 @@
 
           {#if form.api_method !== 'GET'}
             <div>
-              <label class="field-label">Request Body (JSON)</label>
+              <div class="field-label">Request Body (JSON)</div>
               <textarea class="input mono" rows="3" style="resize:vertical" bind:value={form.api_body}
                 placeholder='{{"limit":20,"page":1}}'></textarea>
             </div>
           {/if}
 
-          <div style="background:#f8f8f6;border-radius:var(--radius);padding:14px">
+          <div style="background:var(--surface-2);border-radius:var(--radius);padding:14px">
             <div style="font-weight:500;font-size:13px;margin-bottom:10px">📍 Konfigurasi Parsing Response</div>
             <div class="form-row-2">
               <div>
-                <label class="field-label">Items Path (dot notation)</label>
+                <div class="field-label">Items Path (dot notation)</div>
                 <input class="input mono" bind:value={form.items_path}
                   placeholder="data.items" />
                 <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
@@ -290,7 +290,7 @@
                 </div>
               </div>
               <div>
-                <label class="field-label">Item Field</label>
+                <div class="field-label">Item Field</div>
                 <input class="input mono" bind:value={form.item_field}
                   placeholder="key" />
                 <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
@@ -300,12 +300,12 @@
             </div>
 
             <!-- Contoh JSON mapping -->
-            <div style="margin-top:10px;padding:10px 12px;background:#fff;border-radius:var(--radius);font-size:12px;border:0.5px solid var(--border)">
+            <div style="margin-top:10px;padding:10px 12px;background:var(--surface);border-radius:var(--radius);font-size:12px;border:0.5px solid var(--border)">
               <div style="color:var(--text-muted);margin-bottom:6px;font-weight:500">Contoh mapping:</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div>
                   <div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">Response API:</div>
-                  <pre style="font-size:11px;color:#534AB7;margin:0">{`{ "data": {
+                  <pre style="font-size:11px;color:var(--primary);margin:0">{`{ "data": {
   "items": [
     { "key": "LIC-001" },
     { "key": "LIC-002" }
@@ -315,17 +315,17 @@
                 <div>
                   <div style="color:var(--text-muted);font-size:11px;margin-bottom:3px">Config:</div>
                   <div style="font-size:11.5px">
-                    Items Path: <code style="background:#f0f4ff;padding:1px 5px;border-radius:3px">data.items</code><br/>
-                    Item Field: <code style="background:#f0f4ff;padding:1px 5px;border-radius:3px">key</code>
+                    Items Path: <code style="background:var(--primary-bg);padding:1px 5px;border-radius:3px">data.items</code><br/>
+                    Item Field: <code style="background:var(--primary-bg);padding:1px 5px;border-radius:3px">key</code>
                   </div>
-                  <div style="font-size:11px;color:#2f5e0f;margin-top:8px">→ Hasilnya: LIC-001, LIC-002</div>
+            <div style="font-size:11px;color:var(--success-fg);margin-top:8px">→ Hasilnya: LIC-001, LIC-002</div>
                 </div>
               </div>
             </div>
           </div>
         {:else}
           <!-- CSV: satu item per baris -->
-          <div style="background:#EAF3DE;border-radius:var(--radius);padding:11px 14px;font-size:13px;color:#2f5e0f">
+          <div style="background:var(--success-bg);border-radius:var(--radius);padding:11px 14px;font-size:13px;color:var(--success-fg)">
             📄 Setiap baris di file CSV/text akan menjadi satu item stok. Baris kosong dilewati otomatis.
           </div>
         {/if}
@@ -360,7 +360,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
-.tab-btn.active { color: #0d5fa8; border-bottom-color: #0d5fa8; font-weight: 500; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
 .type-card {
   flex: 1;
   padding: 10px 13px;
@@ -369,7 +369,7 @@
   cursor: pointer;
   transition: border-color 0.12s;
 }
-.type-card.selected { border: 1.5px solid #0d5fa8; background: #fafeff; }
+.type-card.selected { border: 1.5px solid var(--primary); background: var(--primary-bg); }
 
 @media (max-width: 900px) {
   .tab-btn { padding: 8px 12px; }
@@ -382,6 +382,5 @@
   .type-card + .type-card { margin-top: 4px; }
   .card { padding: 1rem; }
   .tab-btn { font-size: 12.5px; }
-  .provider-card-actions { flex-direction: column; }
 }
 </style>

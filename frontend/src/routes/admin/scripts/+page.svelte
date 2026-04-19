@@ -25,17 +25,17 @@
   }
 
   const PROV_STYLE = {
-    email:   { icon:'✉️',  bg:'#E6F1FB', color:'#185FA5' },
-    slack:   { icon:'💬',  bg:'#f0e6f6', color:'#4A154B' },
-    discord: { icon:'🎮',  bg:'#eef0ff', color:'#5865F2' },
-    webhook: { icon:'🔗',  bg:'#EEEDFE', color:'#534AB7' },
-    log:     { icon:'📋',  bg:'#EAF3DE', color:'#3B6D11' },
+    email:   { icon:'✉️',  bg:'var(--info-bg)', color:'var(--info-fg)' },
+    slack:   { icon:'💬',  bg:'var(--warning-bg)', color:'var(--warning-fg)' },
+    discord: { icon:'🎮',  bg:'var(--primary-bg)', color:'var(--primary)' },
+    webhook: { icon:'🔗',  bg:'var(--warning-bg)', color:'var(--warning-fg)' },
+    log:     { icon:'📋',  bg:'var(--success-bg)', color:'var(--success-fg)' },
   };
 
   const STATUS_STYLE = {
-    ok:      { label:'✓ OK',      bg:'#EAF3DE', color:'#3B6D11' },
-    failed:  { label:'✗ Gagal',   bg:'#FCEBEB', color:'#8c2626' },
-    skipped: { label:'— Skip',    bg:'#f0f0ee', color:'#888'    },
+    ok:      { label:'✓ OK',      bg:'var(--success-bg)', color:'var(--success-fg)' },
+    failed:  { label:'✗ Gagal',   bg:'var(--danger-bg)', color:'var(--danger-fg)' },
+    skipped: { label:'— Skip',    bg:'var(--surface-2)', color:'var(--text-muted)'    },
   };
 </script>
 
@@ -80,7 +80,7 @@
           {#each actions as action, i}
             {@const ps = PROV_STYLE[action.provider] || PROV_STYLE.log}
             {@const ss = STATUS_STYLE[action.status] || STATUS_STYLE.ok}
-            <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#f9f9f9;border-radius:var(--radius);border-left:3px solid {action.status==='failed'?'#e24b4a':action.status==='skipped'?'#ccc':'#63c422'}">
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--surface-2);border-radius:var(--radius);border-left:3px solid {action.status==='failed'?'var(--danger-fg)':action.status==='skipped'?'var(--border-md)':'var(--success-fg)'}">
               <!-- Step number -->
               <div style="width:20px;height:20px;border-radius:50%;background:{ps.bg};color:{ps.color};font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">{i+1}</div>
 
@@ -99,7 +99,7 @@
                     Aktifkan kembali di pengaturan produk.
                   </div>
                 {:else}
-                  <div style="font-size:12px;color:{action.status==='failed'?'#8c2626':'var(--text-muted)'};word-break:break-all;font-family:'JetBrains Mono',monospace;line-height:1.6">
+                  <div style="font-size:12px;color:{action.status==='failed'?'var(--danger-fg)':'var(--text-muted)'};word-break:break-all;font-family:'JetBrains Mono',monospace;line-height:1.6">
                     {action.output?.replace(/^\[.*?\]\s*/, '') || '—'}
                   </div>
                 {/if}

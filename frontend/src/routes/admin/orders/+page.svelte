@@ -112,7 +112,7 @@
                 <div style="display:flex;gap:5px">
                   <button class="btn btn-sm" on:click={()=>viewOrder=o}>Invoice</button>
                   {#if o.status === 'pending'}
-                    <button class="btn btn-sm" style="background:#EAF3DE;color:#2f5e0f;border-color:#c0dda8"
+                    <button class="btn btn-sm" style="background:var(--success-bg);color:var(--success-fg);border-color:var(--border)"
                       on:click={()=>openDeliver(o)}>
                       📦 Kirim
                     </button>
@@ -136,7 +136,7 @@
 
 <!-- Manual Deliver Modal -->
 {#if deliverModal}
-  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&(deliverModal=null)} role="dialog">
+  <div class="modal-overlay" on:click={(e)=>e.target===e.currentTarget&&(deliverModal=null)} on:keydown={(e)=>e.key==='Escape'&&(deliverModal=null)} role="dialog" tabindex="-1">
     <div class="modal-box" style="max-width:520px">
       <div class="modal-header">
         <div>
@@ -148,7 +148,7 @@
 
       <div style="display:flex;flex-direction:column;gap:14px">
         <!-- Info produk -->
-        <div style="background:#f8f8f6;border-radius:var(--radius);padding:12px 14px;font-size:13px">
+        <div style="background:var(--surface-2);border-radius:var(--radius);padding:12px 14px;font-size:13px">
           <div><strong>{deliverModal.product_name}</strong> × {deliverModal.qty}</div>
           <div style="color:var(--text-muted);font-size:12px;margin-top:2px">
             Tipe: {deliverModal.product_type==='stock'?'Stok':'Script'} · Total: {IDR(deliverModal.total)}
@@ -157,24 +157,24 @@
 
         {#if deliverModal.product_type === 'stock'}
           <div>
-            <label class="field-label">
+            <div class="field-label">
               Item yang Dikirim <span style="color:var(--text-muted);font-weight:400">(satu per baris — opsional: kosongkan untuk ambil dari stok otomatis)</span>
-            </label>
+            </div>
             <textarea class="input mono" rows="5" style="resize:vertical" bind:value={deliverItems}
               placeholder="Kosongkan = ambil otomatis dari stok tersedia&#10;&#10;Atau isi manual:&#10;https://drive.google.com/file/d/AAA/view&#10;LIC-KEY-XXXX-1111"></textarea>
           </div>
 
-          <div style="background:#E6F1FB;border-radius:var(--radius);padding:10px 14px;font-size:12.5px;color:#185FA5">
+          <div style="background:var(--info-bg);border-radius:var(--radius);padding:10px 14px;font-size:12.5px;color:var(--info-fg)">
             💡 Jika dikosongkan, sistem otomatis mengambil item dari tabel stok produk ini (yang belum terjual). Isi manual hanya jika ingin kirim item spesifik di luar stok terdaftar.
           </div>
         {:else}
-          <div style="background:#EEEDFE;border-radius:var(--radius);padding:10px 14px;font-size:12.5px;color:#534AB7">
+          <div style="background:rgba(124,58,237,0.14);border-radius:var(--radius);padding:10px 14px;font-size:12.5px;color:var(--warning-fg)">
             ⚙️ Klik Kirim untuk menjalankan ulang semua provider actions yang dikonfigurasi pada produk ini (email, webhook, Slack, dll).
           </div>
         {/if}
 
         <div>
-          <label class="field-label">Catatan (opsional)</label>
+          <div class="field-label">Catatan (opsional)</div>
           <input class="input" bind:value={deliverNote} placeholder="mis: Kirim ulang karena link expired sebelumnya"/>
         </div>
 
@@ -197,11 +197,11 @@
   border:none;cursor:pointer;padding:3px 9px;border-radius:999px;
   font-size:11.5px;font-weight:500;font-family:inherit;outline:none;appearance:none;
 }
-.status-select.badge-paid    { background:#EAF3DE;color:#3B6D11; }
-.status-select.badge-pending { background:#FAEEDA;color:#854F0B; }
-.status-select.badge-script_executed { background:#E6F1FB;color:#185FA5; }
-.status-select.badge-cancelled { background:#FCEBEB;color:#8c2626; }
-.status-select.badge-expired { background:#FCEBEB;color:#eb0d0d; }
+.status-select.badge-paid    { background:var(--success-bg);color:var(--success-fg); }
+.status-select.badge-pending { background:var(--warning-bg);color:var(--warning-fg); }
+.status-select.badge-script_executed { background:var(--info-bg);color:var(--info-fg); }
+.status-select.badge-cancelled { background:var(--danger-bg);color:var(--danger-fg); }
+.status-select.badge-expired { background:var(--danger-bg);color:var(--danger-fg); }
 
 @media (max-width: 900px) {
   .status-select { width:100%; max-width:140px; }

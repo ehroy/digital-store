@@ -96,7 +96,7 @@
   function overlay(e) { if (e.target === e.currentTarget) dispatch('close'); }
 </script>
 
-<div class="modal-overlay" on:click={overlay} role="dialog" aria-modal="true">
+<div class="modal-overlay" on:click={overlay} on:keydown={(e)=>e.key==='Escape'&&dispatch('close')} role="dialog" aria-modal="true" tabindex="-1">
   <div class="modal-box" style="max-width:460px">
     <div class="modal-header">
       <span class="modal-title">Beli Produk</span>
@@ -108,13 +108,13 @@
       <span class="picon">{product.icon}</span>
       <div>
         <div style="font-weight:500;font-size:14px">{product.name}</div>
-        <div style="color:#0d5fa8;font-weight:500;font-size:15px">{IDR(unitPrice || product.price)} / pcs</div>
+        <div style="color:var(--primary);font-weight:500;font-size:15px">{IDR(unitPrice || product.price)} / pcs</div>
       </div>
     </div>
 
     {#if isVariantProduct}
       <div>
-        <label class="field-label">Pilih Varian</label>
+        <div class="field-label">Pilih Varian</div>
         <div class="variant-list">
           {#each product.variants as variant}
             <button
@@ -128,7 +128,7 @@
                 <div style="font-size:11.5px;color:var(--text-muted)">{prettyVariant(variant)}</div>
               </div>
               <div style="text-align:right">
-                <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
+                <div style="font-weight:500;color:var(--primary)">{IDR(variant.price)}</div>
                 <div class="variant-stock {variant.stock_status === 'out_of_stock' ? 'status-out' : 'status-available'}">
                   {variant.stock_status === 'out_of_stock' ? 'Habis' : `Stok ${variant.available_stock}`}
                 </div>
@@ -141,15 +141,15 @@
 
     <div class="form-grid">
       <div>
-        <label class="field-label">Nama Lengkap</label>
+        <div class="field-label">Nama Lengkap</div>
         <input class="input" placeholder="Masukkan nama lengkap" bind:value={name} />
       </div>
       <div>
-        <label class="field-label">Email (untuk invoice)</label>
+        <div class="field-label">Email (untuk invoice)</div>
         <input class="input" type="email" placeholder="email@example.com" bind:value={email} />
       </div>
       <div>
-        <label class="field-label">Jumlah</label>
+        <div class="field-label">Jumlah</div>
        <div class="qty-row">
          <button class="btn btn-sm" type="button" on:click={() => qty = Math.max(1, qty - 1)}>−</button>
 
@@ -208,7 +208,7 @@
 <style>
 .product-summary {
   display: flex; align-items: center; gap: 12px;
-  background: #f8f8f6; border-radius: var(--radius);
+  background: var(--surface-2); border-radius: var(--radius);
   padding: 12px 14px; margin-bottom: 16px;
 }
 .picon { font-size: 28px; }
@@ -222,14 +222,14 @@
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 12px;
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
 }
-.variant-item.active { border: 1.5px solid #0d5fa8; background: #fafeff; }
+.variant-item.active { border: 1.5px solid var(--primary); background: var(--primary-bg); }
 .variant-item.sold-out {
   cursor: not-allowed;
   opacity: 0.62;
-  background: #fafafa;
+  background: var(--surface-2);
 }
 .variant-item:disabled {
   cursor: not-allowed;
@@ -239,7 +239,6 @@
   font-weight: 600;
 }
 .variant-stock.status-available { color: #2f5e0f; }
-.variant-stock.status-manual { color: #854F0B; }
 .variant-stock.status-out { color: #8c2626; }
 .qty-hint { font-size:12px;color:var(--text-muted); }
 .total-row {

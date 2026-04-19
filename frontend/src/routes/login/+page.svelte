@@ -41,11 +41,11 @@
 
     <div class="form-grid">
       <div>
-        <label class="field-label">Username</label>
+        <div class="field-label">Username</div>
         <input class="input" placeholder="admin" bind:value={username} on:keydown={handleKey} />
       </div>
       <div>
-        <label class="field-label">Password</label>
+        <div class="field-label">Password</div>
         <input class="input" type="password" placeholder="••••••••" bind:value={password} on:keydown={handleKey} />
       </div>
 
@@ -65,21 +65,21 @@
 .login-wrap {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #f0f6fd 0%, var(--bg) 100%);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg) 100%);
   padding: 1rem;
 }
 .login-card {
-  background: #fff; border-radius: var(--radius-lg);
+  background: var(--surface); border-radius: var(--radius-lg);
   border: 0.5px solid var(--border);
   padding: 2rem; width: 100%; max-width: 380px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  box-shadow: var(--shadow);
 }
 .login-brand {
   display: flex; align-items: center; gap: 8px;
   font-weight: 500; font-size: 15px; margin-bottom: 1.5rem;
 }
 .login-logo {
-  background: #0d5fa8; border-radius: 8px;
+  background: linear-gradient(135deg,var(--primary),var(--primary-2)); color:var(--primary-fg); border-radius: 8px;
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center; font-size: 14px;
 }

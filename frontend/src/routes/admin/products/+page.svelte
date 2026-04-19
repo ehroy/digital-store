@@ -42,11 +42,11 @@
   let stockSummary = { available: 0, sold: 0, total: 0 };
 
   const PROVIDERS = [
-    { id:'email',   label:'Email',   icon:'✉️',  color:'#185FA5', bg:'#E6F1FB' },
-    { id:'slack',   label:'Slack',   icon:'💬',  color:'#4A154B', bg:'#f0e6f6' },
-    { id:'discord', label:'Discord', icon:'🎮',  color:'#5865F2', bg:'#eef0ff' },
-    { id:'webhook', label:'Webhook', icon:'🔗',  color:'#534AB7', bg:'#EEEDFE' },
-    { id:'log',     label:'Log',     icon:'📋',  color:'#3B6D11', bg:'#EAF3DE' },
+    { id:'email',   label:'Email',   icon:'✉️',  color:'var(--info-fg)', bg:'var(--info-bg)' },
+    { id:'slack',   label:'Slack',   icon:'💬',  color:'var(--warning-fg)', bg:'var(--warning-bg)' },
+    { id:'discord', label:'Discord', icon:'🎮',  color:'var(--primary)', bg:'var(--primary-bg)' },
+    { id:'webhook', label:'Webhook', icon:'🔗',  color:'var(--warning-fg)', bg:'var(--warning-bg)' },
+    { id:'log',     label:'Log',     icon:'📋',  color:'var(--success-fg)', bg:'var(--success-bg)' },
   ];
   const providerStyle = (id) => PROVIDERS.find(p=>p.id===id) || PROVIDERS[3];
 
@@ -475,14 +475,14 @@
               <td>
                 {#if p.type==='stock'}
                   <div style="font-size:13px">
-                    <span style="color:{p.available_stock===0?'#8c2626':p.available_stock<5?'#854F0B':'#2f5e0f'};font-weight:500">
+                    <span style="color:{p.available_stock===0?'var(--danger-fg)':p.available_stock<5?'var(--warning-fg)':'var(--success-fg)'};font-weight:500">
                       {p.available_stock??0} tersedia
                     </span>
                     <span style="color:var(--text-muted)"> / {p.total_stock??0}</span>
                   </div>
                 {:else if p.type==='provider'}
                   <div style="font-size:13px">
-                    <span style="color:{p.available_stock===0?'#8c2626':p.available_stock<5?'#854F0B':'#2f5e0f'};font-weight:500">
+                    <span style="color:{p.available_stock===0?'var(--danger-fg)':p.available_stock<5?'var(--warning-fg)':'var(--success-fg)'};font-weight:500">
                       {p.available_stock??0} tersedia
                     </span>
                     <span style="color:var(--text-muted)">{p.stock_source === 'internal' ? ' / stok sendiri' : ' / provider'}</span>
@@ -498,18 +498,18 @@
               </td>
               <td>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                  <button class="badge" style="cursor:pointer;border:1px solid {p.is_popular ? '#d97706' : 'var(--border)'};background:{p.is_popular ? '#fff7ed' : '#fff'};color:{p.is_popular ? '#b45309' : 'var(--text)'}" on:click={()=>togglePopular(p)}>
+                  <button class="badge" style="cursor:pointer;border:1px solid {p.is_popular ? 'rgba(245,158,11,0.4)' : 'var(--border)'};background:{p.is_popular ? 'var(--warning-bg)' : 'var(--surface)'};color:{p.is_popular ? 'var(--warning-fg)' : 'var(--text)'}" on:click={()=>togglePopular(p)}>
                     {p.is_popular ? 'Terlaris' : 'Biasa'}
                   </button>
-                  <button class="badge" style="cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151" on:click={()=>markPopular(p)} disabled={p.is_popular}>+</button>
-                  <button class="badge" style="cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151" on:click={()=>unmarkPopular(p)} disabled={!p.is_popular}>-</button>
+                  <button class="badge" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text)" on:click={()=>markPopular(p)} disabled={p.is_popular}>+</button>
+                  <button class="badge" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text)" on:click={()=>unmarkPopular(p)} disabled={!p.is_popular}>-</button>
                 </div>
               </td>
               <td>
                 <div style="display:flex;gap:5px;flex-wrap:wrap">
                   <button class="btn btn-sm" on:click={()=>openEdit(p)}>Edit</button>
                   {#if p.type==='stock' || p.type==='provider'}
-                    <button class="btn btn-sm" style="background:#E6F1FB;color:#185FA5;border-color:#B5D4F4" on:click={()=>openStock(p)}>Stok</button>
+                    <button class="btn btn-sm" style="background:var(--info-bg);color:var(--info-fg);border-color:var(--border)" on:click={()=>openStock(p)}>Stok</button>
                   {/if}
                   <button class="btn btn-sm btn-danger" on:click={()=>del(p)}>Hapus</button>
                 </div>
@@ -541,14 +541,14 @@
 
       <!-- ── IMAGE UPLOAD ─────────────────────────────────────────── -->
       <div style="margin-bottom:16px">
-        <label class="field-label">Gambar Produk <span style="color:var(--text-muted);font-weight:400">(opsional · JPEG/PNG/WebP/GIF · maks 5 MB)</span></label>
+        <div class="field-label">Gambar Produk <span style="color:var(--text-muted);font-weight:400">(opsional · JPEG/PNG/WebP/GIF · maks 5 MB)</span></div>
 
         {#if imagePreview}
           <!-- Preview gambar -->
           <div class="img-preview-wrap">
             <img src={imagePreview} alt="preview" class="img-preview" />
             <div class="img-preview-actions">
-              <button class="btn btn-sm" style="background:rgba(0,0,0,0.6);color:#fff;border:none" on:click={()=>fileInputRef.click()}>
+              <button class="btn btn-sm" style="background:rgba(15,23,42,0.72);color:var(--primary-fg);border:none" on:click={()=>fileInputRef.click()}>
                 🖼 Ganti
               </button>
               <button class="btn btn-sm btn-danger" style="background:rgba(180,0,0,0.8);border:none" on:click={removeImage}>
@@ -558,7 +558,7 @@
             {#if imageFile}
               <div class="img-badge">Belum disimpan</div>
             {:else if form.image_url}
-              <div class="img-badge" style="background:#EAF3DE;color:#2f5e0f">Tersimpan</div>
+              <div class="img-badge" style="background:var(--success-bg);color:var(--success-fg)">Tersimpan</div>
             {/if}
           </div>
         {:else}
@@ -588,7 +588,7 @@
       <!-- ── Icon (hanya tampil jika tidak ada gambar) ─────────────── -->
       {#if !imagePreview}
         <div style="margin-bottom:14px">
-          <label class="field-label">Icon Emoji <span style="color:var(--text-muted);font-weight:400">(ditampilkan jika tidak ada gambar)</span></label>
+          <div class="field-label">Icon Emoji <span style="color:var(--text-muted);font-weight:400">(ditampilkan jika tidak ada gambar)</span></div>
           <div class="icon-grid">
             {#each PRODUCT_ICONS as ic}
               <button class="icon-btn {form.icon===ic?'selected':''}" on:click={()=>form.icon=ic}>{ic}</button>
@@ -599,17 +599,17 @@
 
       <!-- ── Fields ──────────────────────────────────────────────────── -->
       <div class="form-row-2" style="margin-bottom:12px">
-        <div><label class="field-label">Nama Produk *</label><input class="input" bind:value={form.name} /></div>
-        <div><label class="field-label">Kategori *</label><input class="input" bind:value={form.category} placeholder="Template, Ebook, Jasa…" /></div>
+        <div><div class="field-label">Nama Produk *</div><input class="input" bind:value={form.name} /></div>
+        <div><div class="field-label">Kategori *</div><input class="input" bind:value={form.category} placeholder="Template, Ebook, Jasa…" /></div>
       </div>
       <div style="margin-bottom:12px">
-        <label class="field-label">Deskripsi</label>
+        <div class="field-label">Deskripsi</div>
         <textarea class="input" rows="2" style="resize:vertical" bind:value={form.description}></textarea>
       </div>
       <div class="form-row-2" style="margin-bottom:16px">
-        <div><label class="field-label">Harga (Rp) {form.type==='provider' ? '(otomatis)' : '*'}</label><input class="input" type="number" min="0" bind:value={form.price} readonly={form.type==='provider'} /></div>
+        <div><div class="field-label">Harga (Rp) {form.type==='provider' ? '(otomatis)' : '*'}</div><input class="input" type="number" min="0" bind:value={form.price} readonly={form.type==='provider'} /></div>
         <div>
-          <label class="field-label">Tipe</label>
+          <div class="field-label">Tipe</div>
           <select class="input" bind:value={form.type}>
             <option value="stock">Stok — item individual</option>
             <option value="provider">Provider — markup fleksibel</option>
@@ -627,12 +627,12 @@
           Harga jual dihitung dari harga beli provider + markup. Jika default provider aktif, perubahan default akan ikut memperbarui produk ini.
         </div>
         <div class="form-row-2" style="margin-bottom:12px">
-          <div><label class="field-label">Provider Name *</label><input class="input" bind:value={form.provider_name} placeholder="KoalaStore" /></div>
-          <div><label class="field-label">Provider Code</label><input class="input mono" bind:value={form.provider_code} placeholder="SKU / code variant" /></div>
+          <div><div class="field-label">Provider Name *</div><input class="input" bind:value={form.provider_name} placeholder="KoalaStore" /></div>
+          <div><div class="field-label">Provider Code</div><input class="input mono" bind:value={form.provider_code} placeholder="SKU / code variant" /></div>
         </div>
         <div class="form-row-2" style="margin-bottom:12px">
-          <div><label class="field-label">Harga Beli Provider</label><input class="input" type="number" min="0" bind:value={form.provider_price} /></div>
-          <div><label class="field-label">Gunakan default markup provider</label>
+          <div><div class="field-label">Harga Beli Provider</div><input class="input" type="number" min="0" bind:value={form.provider_price} /></div>
+          <div><div class="field-label">Gunakan default markup provider</div>
             <div style="display:flex;align-items:center;height:40px;padding:0 2px">
               <input type="checkbox" bind:checked={form.use_provider_default_markup} />
             </div>
@@ -641,14 +641,14 @@
         {#if !form.use_provider_default_markup}
           <div class="form-row-2" style="margin-bottom:14px">
             <div>
-              <label class="field-label">Markup Type</label>
+              <div class="field-label">Markup Type</div>
               <select class="input" bind:value={form.markup_type}>
                 <option value="percent">Persen (%)</option>
                 <option value="fixed">Nominal (Rp)</option>
               </select>
             </div>
             <div>
-              <label class="field-label">Markup Value</label>
+              <div class="field-label">Markup Value</div>
               <input class="input" type="number" min="0" bind:value={form.markup_value} />
             </div>
           </div>
@@ -691,35 +691,35 @@
                     </div>
                   </div>
                   <div style="margin-bottom:8px">
-                    <label class="field-label">Label (opsional)</label>
+                    <div class="field-label">Label (opsional)</div>
                     <input class="input" style="max-width:260px" bind:value={action.label} placeholder="mis: Notif ke designer" on:input={syncScript}/>
                   </div>
                   {#if action.provider==='email'}
                     <div class="form-grid" style="gap:8px">
-                      <div><label class="field-label">Kirim ke</label>
+                      <div><div class="field-label">Kirim ke</div>
                         <input class="input" bind:value={action.to} placeholder="admin@example.com" on:input={syncScript}/></div>
-                      <div><label class="field-label">Subject</label>
+                      <div><div class="field-label">Subject</div>
                         <input class="input" bind:value={action.subject} placeholder={'Order {{invoice_no}} — {{product_name}}'} on:input={syncScript}/></div>
-                      <div><label class="field-label">Isi email</label>
+                      <div><div class="field-label">Isi email</div>
                         <textarea class="input" rows="3" bind:value={action.body} placeholder={'Pembeli: {{buyer_name}}\nInvoice: {{invoice_no}}'} on:input={syncScript} style="resize:vertical"></textarea></div>
                     </div>
                   {:else if action.provider==='slack'||action.provider==='discord'}
                     <div class="form-grid" style="gap:8px">
-                      <div><label class="field-label">Webhook URL</label>
+                      <div><div class="field-label">Webhook URL</div>
                         <input class="input" bind:value={action.webhook_url} placeholder="https://hooks.slack.com/services/…" on:input={syncScript}/></div>
-                      <div><label class="field-label">Pesan</label>
+                      <div><div class="field-label">Pesan</div>
                         <textarea class="input" rows="2" bind:value={action.message} placeholder={'Order baru: {{invoice_no}} dari {{buyer_name}}'} on:input={syncScript} style="resize:vertical"></textarea></div>
                     </div>
                   {:else if action.provider==='webhook'}
                     <div class="form-row-2">
-                      <div><label class="field-label">URL</label><input class="input" bind:value={action.url} placeholder="https://api.example.com/hook" on:input={syncScript}/></div>
-                      <div><label class="field-label">Method</label>
+                      <div><div class="field-label">URL</div><input class="input" bind:value={action.url} placeholder="https://api.example.com/hook" on:input={syncScript}/></div>
+                      <div><div class="field-label">Method</div>
                         <select class="input" bind:value={action.method} on:change={syncScript}>
                           <option>POST</option><option>PUT</option><option>PATCH</option>
                         </select></div>
                     </div>
                   {:else if action.provider==='log'}
-                    <div><label class="field-label">Pesan log</label>
+                    <div><div class="field-label">Pesan log</div>
                       <input class="input" bind:value={action.message} placeholder={'Order {{invoice_no}} diterima dari {{buyer_name}}'} on:input={syncScript}/></div>
                   {/if}
                 </div>
@@ -760,15 +760,15 @@
         <div>
           <div class="modal-title">Stok — {stockModal.name}</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-            <span style="color:#2f5e0f;font-weight:500">{available} tersedia</span> ·
-            <span style="color:#854F0B">{sold} terjual</span> · {stockItems.length} total
+            <span style="color:var(--success-fg);font-weight:500">{available} tersedia</span> ·
+            <span style="color:var(--warning-fg)">{sold} terjual</span> · {stockItems.length} total
           </div>
         </div>
         <button class="modal-close" on:click={()=>stockModal=null}>×</button>
       </div>
 
-      <div class="card" style="background:#f8f8f6;margin-bottom:14px;padding:1rem">
-        <label class="field-label">Tambah Item <span style="color:var(--text-muted);font-weight:400">(satu per baris)</span></label>
+      <div class="card" style="background:var(--surface-2);margin-bottom:14px;padding:1rem">
+        <div class="field-label">Tambah Item <span style="color:var(--text-muted);font-weight:400">(satu per baris)</span></div>
         <textarea class="input mono" rows="4" style="resize:vertical" bind:value={bulkText}
           placeholder="https://drive.google.com/file/d/AAA/view&#10;LIC-KEY-XXXX-1111"></textarea>
         <button class="btn btn-primary btn-sm" style="margin-top:8px" on:click={addBulk}>
@@ -799,7 +799,7 @@
             <tbody>
               {#each stockItems as item, i (item.id)}
                 {@const rowNo = (stockPage - 1) * 25 + i + 1}
-                <tr style="background:{item.sold?'#fff8f8':'#fff'}">
+                <tr style="background:{item.sold?'var(--danger-bg)':'var(--surface)'}">
                   <td style="color:var(--text-muted);font-size:12px">{rowNo}</td>
                   <td>
                     {#if editingItem?.id===item.id}
@@ -814,9 +814,9 @@
                   </td>
                   <td>
                     {#if item.sold}
-                      <span class="badge" style="background:#FCEBEB;color:#8c2626;font-size:11px">✗ Sold</span>
+                      <span class="badge" style="background:var(--danger-bg);color:var(--danger-fg);font-size:11px">✗ Sold</span>
                     {:else}
-                      <span class="badge" style="background:#EAF3DE;color:#3B6D11;font-size:11px">✓ Available</span>
+                      <span class="badge" style="background:var(--success-bg);color:var(--success-fg);font-size:11px">✓ Available</span>
                     {/if}
                   </td>
                   <td>
@@ -860,7 +860,7 @@
 .thumb-del {
   position:absolute;top:-5px;right:-5px;
   width:17px;height:17px;border-radius:50%;
-  background:#8c2626;color:#fff;font-size:11px;
+  background:var(--danger-fg);color:var(--primary-fg);font-size:11px;
   display:flex;align-items:center;justify-content:center;
   border:none;cursor:pointer;line-height:1;
   opacity:0;transition:opacity 0.15s;
@@ -868,7 +868,7 @@
 .thumb-wrap:hover .thumb-del { opacity:1; }
 .thumb-icon {
   width:48px;height:48px;border-radius:var(--radius);
-  background:#f8f8f6;border:0.5px solid var(--border);
+  background:var(--surface-2);border:0.5px solid var(--border);
   display:flex;align-items:center;justify-content:center;
   font-size:22px;flex-shrink:0;
 }
@@ -878,9 +878,9 @@
   border:2px dashed var(--border-md);border-radius:var(--radius-lg);
   padding:2rem;text-align:center;cursor:pointer;
   transition:border-color 0.15s,background 0.15s;
-  background:#fafafa;
+  background:var(--surface-2);
 }
-.dropzone:hover,.drag-active { border-color:#0d5fa8;background:#f0f6fd; }
+.dropzone:hover,.drag-active { border-color:var(--primary);background:var(--primary-bg); }
 
 /* Image preview */
 .img-preview-wrap {
@@ -889,7 +889,7 @@
   border:0.5px solid var(--border);
   max-width:100%;
 }
-.img-preview { display:block;max-height:200px;max-width:100%;object-fit:contain;background:#f8f8f6; }
+.img-preview { display:block;max-height:200px;max-width:100%;object-fit:contain;background:var(--surface-2); }
 .img-preview-actions {
   position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
   display:flex;gap:6px;opacity:0;transition:opacity 0.15s;
@@ -897,33 +897,33 @@
 .img-preview-wrap:hover .img-preview-actions { opacity:1; }
 .img-badge {
   position:absolute;top:8px;right:8px;
-  background:rgba(0,0,0,0.55);color:#fff;
+  background:rgba(15,23,42,0.72);color:var(--primary-fg);
   font-size:11px;padding:3px 8px;border-radius:999px;
 }
 
 /* Icon grid */
 .icon-grid { display:flex;flex-wrap:wrap;gap:6px; }
-.icon-btn { font-size:18px;padding:5px 9px;cursor:pointer;border:0.5px solid var(--border);border-radius:var(--radius);background:#f8f8f6; }
-.icon-btn.selected { border:2px solid #0d5fa8; }
+.icon-btn { font-size:18px;padding:5px 9px;cursor:pointer;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2); }
+.icon-btn.selected { border:2px solid var(--primary); }
 
 /* Provider picker */
 .provider-picker { display:flex;flex-wrap:wrap;gap:7px; }
 .prov-btn { padding:6px 14px;border-radius:999px;border:1px solid;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500; }
 
 /* Action card */
-.action-card { background:#fafafa;border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px; }
+.action-card { background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px; }
 .action-head { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; }
 .toggle-btn { padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid;font-family:inherit;letter-spacing:0.5px; }
-.toggle-btn.on  { background:#EAF3DE;color:#2f5e0f;border-color:#2f5e0f40; }
-.toggle-btn.off { background:#f4f4f2;color:#999;border-color:#ccc; }
+.toggle-btn.on  { background:var(--success-bg);color:var(--success-fg);border-color:rgba(59,109,17,0.25); }
+.toggle-btn.off { background:var(--surface-2);color:var(--text-muted);border-color:var(--border); }
 
 /* Misc */
-.var-ref { display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding:8px 12px;background:#f8f8f6;border-radius:var(--radius); }
+.var-ref { display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding:8px 12px;background:var(--surface-2);border-radius:var(--radius); }
 .var-ref-title { font-size:11.5px;color:var(--text-muted); }
-.var-chip { font-family:'JetBrains Mono',monospace;font-size:11px;background:#E6F1FB;color:#185FA5;padding:2px 7px;border-radius:4px; }
-.info-box { background:#E6F1FB;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#185FA5; }
-.empty-box { background:#f8f8f6;border:1px dashed var(--border-md);border-radius:var(--radius);padding:14px;text-align:center;font-size:13px;color:var(--text-muted); }
-.bulk-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#E6F1FB;border-radius:var(--radius-lg);margin-bottom:12px;flex-wrap:wrap; }
+.var-chip { font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--info-bg);color:var(--info-fg);padding:2px 7px;border-radius:4px; }
+.info-box { background:var(--info-bg);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--info-fg); }
+.empty-box { background:var(--surface-2);border:1px dashed var(--border-md);border-radius:var(--radius);padding:14px;text-align:center;font-size:13px;color:var(--text-muted); }
+.bulk-bar { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--info-bg);border-radius:var(--radius-lg);margin-bottom:12px;flex-wrap:wrap; }
 .bulk-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
 
 @media (max-width: 900px) {

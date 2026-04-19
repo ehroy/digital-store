@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from '$lib/api.js';
   import { IDR } from '$lib/utils.js';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
   import BuyModal from './BuyModal.svelte';
   import CheckoutModal from './CheckoutModal.svelte';
   import InvoiceModal from './InvoiceModal.svelte';
@@ -139,6 +140,7 @@
     </a>
     <span class="nav-tag">Digital goods, clean checkout</span>
     <div style="display:flex;gap:8px;margin-left:auto">
+      <ThemeToggle />
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
       <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
 
@@ -165,8 +167,8 @@
       </div>
     </div>
     <div class="hero-aside">
-      <div class="aside-label">Pilihan cepat</div>
-      <div class="aside-value">Checkout Mudah semua payment dengan QRIS</div>
+        <div class="aside-label">Pilihan cepat</div>
+        <div class="aside-value">Checkout mudah semua payment dengan QRIS</div>
       <div class="aside-sub">Invoice, status pembayaran, dan komplain semuanya rapi di satu tempat.</div>
       <div class="aside-stats">
         <div>
@@ -299,9 +301,9 @@
     {/if}
   {/if}
 
-  <div class="store-footer">
-    <p>Sudah beli? <a href="/cek-invoice" style="color:#0d5fa8;font-weight:500">Cek status &amp; download produk →</a></p>
-  </div>
+    <div class="store-footer">
+      <p>Sudah beli? <a href="/cek-invoice" style="color:var(--primary);font-weight:500">Cek status &amp; download produk →</a></p>
+    </div>
 </div>
 
 <!-- Floating WA button -->
@@ -328,11 +330,11 @@
 {/if}
 
 <style>
-.store-nav { position:sticky;top:0;z-index:100;background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem; }
+.store-nav { position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem; backdrop-filter: blur(14px); }
 .nav-inner { max-width:1100px;margin:0 auto;height:64px;display:flex;align-items:center;gap:10px; }
 .nav-brand { display:flex;align-items:center;gap:8px;font-weight:700;font-size:15.5px; letter-spacing:-0.02em; }
-.nav-logo { background:linear-gradient(135deg,var(--primary),#60a5fa);border-radius:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px; box-shadow:0 10px 20px rgba(21,93,252,0.18); }
-.nav-tag { font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.04); }
+.nav-logo { background:linear-gradient(135deg,var(--primary),var(--primary-2));border-radius:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px; box-shadow:0 10px 20px rgba(21,93,252,0.18); color:var(--primary-fg); }
+.nav-tag { font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:999px;background:var(--surface-2); border:1px solid var(--border); }
 .hero { padding:2.1rem 1rem 1.2rem; }
 .hero-panel {
   position:relative;overflow:hidden;
@@ -340,7 +342,7 @@
   display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,0.7fr);gap:14px;
   background:
     radial-gradient(circle at top left, rgba(96,165,250,0.16), transparent 34%),
-    linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.97));
+    linear-gradient(180deg,var(--surface),var(--surface-2));
   border:1px solid var(--border);border-radius:24px;padding:1.35rem;box-shadow:var(--shadow);
 }
 .hero-orb { position:absolute;border-radius:999px;filter:blur(12px);pointer-events:none; }
@@ -358,7 +360,7 @@
 }
 .hero-aside {
   border-radius:18px;padding:1rem 1rem 0.95rem;
-  background:linear-gradient(180deg,rgba(21,93,252,0.10),rgba(255,255,255,0.92));
+  background:linear-gradient(180deg,var(--primary-bg),var(--surface));
   border:1px solid rgba(21,93,252,0.12);
   display:flex;flex-direction:column;justify-content:flex-end;gap:6px;
 }
@@ -366,7 +368,7 @@
 .aside-value { font-size:22px;font-weight:800;letter-spacing:-0.03em; }
 .aside-sub { color:var(--text-muted);font-size:13px;line-height:1.6; }
 .aside-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px; }
-.aside-stats div { background:rgba(255,255,255,0.78);border:1px solid rgba(21,93,252,0.10);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center; }
+.aside-stats div { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center; }
 .aside-stats strong { font-size:13px;color:#0f4fd6; }
 .aside-stats span { font-size:11px;color:var(--text-muted); }
 .store-container { max-width:1100px;margin:0 auto;padding:1.25rem 1rem 3rem; }
@@ -374,22 +376,22 @@
 .filter-row .input { flex:1;min-width:200px; }
 .cat-pills { display:flex;gap:6px;flex-wrap:wrap; }
 .product-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px; }
-.product-card { background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms cubic-bezier(.2,.8,.2,1); box-shadow:0 10px 26px rgba(15,23,42,0.05); will-change: transform; animation: card-enter 320ms cubic-bezier(.2,.8,.2,1) both; }
+.product-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.15rem;display:flex;flex-direction:column;gap:12px;transition:transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms cubic-bezier(.2,.8,.2,1); box-shadow:0 10px 26px rgba(15,23,42,0.05); will-change: transform; animation: card-enter 320ms cubic-bezier(.2,.8,.2,1) both; }
 .product-card:hover:not(.out-of-stock) { box-shadow:0 18px 40px rgba(15,23,42,0.10); transform:translateY(-4px) scale(1.012); border-color:rgba(21,93,252,0.15); animation: card-bounce 320ms ease-out; }
 .out-of-stock { opacity:0.7; }
-.product-img-wrap { border-radius:18px;overflow:hidden;background:#f8fafc;aspect-ratio:16/16; border:1px solid var(--border); }
+.product-img-wrap { border-radius:18px;overflow:hidden;background:var(--surface-2);aspect-ratio:16/16; border:1px solid var(--border); }
 .product-img { width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s; }
 .product-card:hover .product-img { transform:scale(1.04); }
-.product-icon { font-size:40px;text-align:center;background:linear-gradient(180deg,#f8fafc,#eef4ff);border-radius:18px;padding:1rem;border:1px solid var(--border); }
+.product-icon { font-size:40px;text-align:center;background:linear-gradient(180deg,var(--surface-2),var(--bg-elevated));border-radius:18px;padding:1rem;border:1px solid var(--border); }
 .product-body { flex:1; }
 .product-name { font-weight:700;font-size:14.8px;line-height:1.4;margin-bottom:5px;letter-spacing:-0.01em; }
 .product-desc { font-size:12.5px;color:var(--text-muted);line-height:1.6; }
 .product-footer { display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border); }
-.product-price { font-weight:700;color:#0f4fd6;font-size:16px; }
+.product-price { font-weight:700;color:var(--primary);font-size:16px; }
 .stock-badge { font-size:12px;display:flex;align-items:center;gap:4px; }
 .stock-dot { width:6px;height:6px;border-radius:50%;display:inline-block;animation:pulse-dot 2s ease-in-out infinite; }
 .variant-badges { display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px; }
-.variant-pill { font-size:11px;padding:4px 8px;border-radius:999px;background:#f4f7fb;color:#345; border:0.5px solid var(--border); }
+.variant-pill { font-size:11px;padding:4px 8px;border-radius:999px;background:var(--surface-2);color:var(--text); border:0.5px solid var(--border); }
 .variant-pill.muted { color:var(--text-muted); }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @keyframes card-bounce {
@@ -401,7 +403,7 @@
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.load-more-state { text-align:center;padding:1rem 0 0;color:#0d5fa8;font-size:13px; }
+.load-more-state { text-align:center;padding:1rem 0 0;color:var(--primary);font-size:13px; }
 .load-more-state.muted { color:var(--text-muted); }
 .load-more-meta {
   display:flex;
@@ -430,5 +432,23 @@
   .hero-copy h1 { max-width: unset; }
   .aside-stats { grid-template-columns:repeat(3,1fr); }
   .nav-tag { display:none; }
+}
+
+@media (max-width: 640px) {
+  .store-container { padding-inline: 0.75rem; }
+  .hero { padding-inline: 0.75rem; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .product-card { padding: 0.8rem; gap: 8px; border-radius: 14px; }
+  .product-name { font-size: 13px; }
+  .product-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .product-price { font-size: 13px; }
+  .product-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .variant-badges { gap: 4px; }
+  .variant-pill { font-size: 10px; padding: 3px 7px; }
+  .nav-inner { height: 58px; }
+  .hero-copy h1 { font-size: 24px; }
+  .hero-copy p { font-size: 13px; }
+  .aside-value { font-size: 18px; }
+  .aside-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR } from '$lib/utils.js';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
   import BuyModal from '../../BuyModal.svelte';
   import CheckoutModal from '../../CheckoutModal.svelte';
   import InvoiceModal from '../../InvoiceModal.svelte';
@@ -48,14 +49,15 @@
 </svelte:head>
 
 <!-- Nav -->
-<nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100">
+<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)">
   <div style="max-width:900px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
-      <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
+      <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       Digital Murah
     </a>
     <span style="color:var(--text-muted);font-size:13px;margin-left:4px">/ {loading ? '…' : (product?.name || 'Produk')}</span>
     <div style="display:flex;gap:8px;margin-left:auto">
+      <ThemeToggle />
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
     </div>
   </div>
@@ -126,7 +128,7 @@
         {/if}
 
         <!-- Harga -->
-        <div style="font-size:30px;font-weight:500;color:#0d5fa8;margin-bottom:20px;letter-spacing:-0.5px">
+        <div style="font-size:30px;font-weight:500;color:var(--primary);margin-bottom:20px;letter-spacing:-0.5px">
           {#if hasVariants}
             Mulai {IDR(product.price)}
           {:else}
@@ -152,7 +154,7 @@
                   {/if}
                 </div>
                 <div style="text-align:right">
-                  <div style="font-weight:500;color:#0d5fa8">{IDR(variant.price)}</div>
+                  <div style="font-weight:500;color:var(--primary)">{IDR(variant.price)}</div>
                   <div class:compact-variant-meta={compactVariants} style="font-size:11px;font-weight:600;color:{variant.stock_status === 'out_of_stock' ? '#8c2626' : '#2f5e0f'}">
                     {variant.stock_status === 'out_of_stock' ? 'Habis' : `Stok ${variant.available_stock}`}
                   </div>
@@ -244,13 +246,13 @@
 .product-main-img-wrap {
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #f8f8f6;
+  background: var(--surface-2);
   border: 0.5px solid var(--border);
   aspect-ratio: 4/3;
 }
 .product-main-img { width:100%;height:100%;object-fit:cover;display:block; }
 .product-main-icon {
-  background: #f8f8f6;
+  background: var(--surface-2);
   border: 0.5px solid var(--border);
   border-radius: var(--radius-lg);
   aspect-ratio: 4/3;
@@ -264,7 +266,7 @@
 
 .variant-preview {
   border: 0.5px solid var(--border);
-  background: #f8f8f6;
+  background: var(--surface-2);
   border-radius: var(--radius);
   padding: 12px 14px;
   margin-bottom: 14px;
@@ -290,7 +292,7 @@
 .delivery-info {
   margin-top: 16px;
   padding: 12px 14px;
-  background: #f8f8f6;
+  background: var(--surface-2);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
@@ -331,7 +333,7 @@
 .desc-note {
   font-size: 12px;
   color: var(--text-muted);
-  background: #f8f8f6;
+  background: var(--surface-2);
   border: 0.5px solid var(--border);
   border-radius: 999px;
   padding: 7px 10px;
@@ -342,9 +344,9 @@
   grid-template-columns: auto 1fr;
   gap: 14px;
   padding: 1rem 1rem 0.95rem;
-  border: 0.5px solid rgba(21,93,252,0.12);
+  border: 0.5px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95));
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
   box-shadow: 0 12px 28px rgba(15,23,42,0.05);
 }
 .desc-accent {
@@ -354,7 +356,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(21,93,252,0.12), rgba(37,211,102,0.10));
+  background: var(--primary-bg);
   color: var(--primary);
   font-size: 16px;
 }
@@ -369,5 +371,6 @@
   .desc-header { align-items: flex-start; flex-direction: column; }
   .desc-note { white-space: normal; }
   .desc-card { grid-template-columns: 1fr; }
+  .product-main-icon { font-size: 64px; }
 }
 </style>

@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$lib/api.js';
   import { IDR } from '$lib/utils.js';
+  import ThemeToggle from '$lib/ThemeToggle.svelte';
 
   const invoiceNo = $page.url.searchParams.get('invoice') || '';
 
@@ -68,12 +69,13 @@
 
 <svelte:head><title>Komplain & Bantuan — Digital Murah</title></svelte:head>
 
-<nav style="background:#fff;border-bottom:0.5px solid var(--border);padding:0 1.5rem">
+<nav style="background:var(--surface);border-bottom:0.5px solid var(--border);padding:0 1.5rem;backdrop-filter:blur(14px)">
   <div style="max-width:700px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px">
     <a href="/" style="display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px">
-      <span style="background:#0d5fa8;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
+      <span style="background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--primary-fg);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">🛍</span>
       {contact?.business_name || 'Digital Murah'}
     </a>
+    <ThemeToggle />
     <span style="margin-left:auto;font-size:13px;color:var(--text-muted)">Komplain & Bantuan</span>
   </div>
 </nav>
@@ -112,13 +114,13 @@
         {:else}
           <div class="form-row-2" style="gap:10px;margin-bottom:10px">
             <div>
-              <label class="field-label">Nomor Invoice *</label>
+              <div class="field-label">Nomor Invoice *</div>
               <input class="input mono" bind:value={invoiceInput}
                 placeholder="INV-20260410-123456"
                 on:keydown={(e) => e.key === 'Enter' && verifyInvoice()} />
             </div>
             <div>
-              <label class="field-label">Email Pembelian *</label>
+              <div class="field-label">Email Pembelian *</div>
               <input class="input" type="email" bind:value={email}
                 placeholder="email@example.com"
                 on:keydown={(e) => e.key === 'Enter' && verifyInvoice()} />

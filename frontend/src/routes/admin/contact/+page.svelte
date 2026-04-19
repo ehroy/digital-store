@@ -49,16 +49,16 @@
     <div style="font-weight:500;font-size:14px;margin-bottom:14px">🏪 Identitas Bisnis</div>
     <div class="form-row-2">
       <div>
-        <label class="field-label">Nama Bisnis</label>
+        <div class="field-label">Nama Bisnis</div>
         <input class="input" bind:value={cfg.business_name} placeholder="Digital Murah" />
       </div>
       <div>
-        <label class="field-label">Website</label>
+        <div class="field-label">Website</div>
         <input class="input" bind:value={cfg.website} placeholder="https://yourdomain.com" />
       </div>
     </div>
     <div style="margin-top:12px">
-      <label class="field-label">Deskripsi Bisnis</label>
+      <div class="field-label">Deskripsi Bisnis</div>
       <textarea class="input" rows="2" style="resize:vertical" bind:value={cfg.business_desc}
         placeholder="Toko digital terpercaya, produk instan 24 jam."></textarea>
     </div>
@@ -67,11 +67,11 @@
   <!-- WhatsApp -->
   <div class="card">
     <div style="font-weight:500;font-size:14px;margin-bottom:14px">
-      <span style="color:#25D366">●</span> WhatsApp
+      <span style="color:var(--success-fg)">●</span> WhatsApp
     </div>
     <div class="form-row-2">
       <div>
-        <label class="field-label">Nomor WhatsApp</label>
+        <div class="field-label">Nomor WhatsApp</div>
         <input class="input" bind:value={cfg.whatsapp}
           placeholder="6281234567890 (dengan kode negara, tanpa +)" />
         <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">
@@ -79,13 +79,13 @@
         </div>
       </div>
       <div>
-        <label class="field-label">Label Tombol</label>
+        <div class="field-label">Label Tombol</div>
         <input class="input" bind:value={cfg.whatsapp_label} placeholder="Hubungi CS" />
       </div>
     </div>
     {#if waLink}
-      <div style="margin-top:10px;padding:8px 12px;background:#f0fff4;border-radius:var(--radius);font-size:12.5px;color:#2f5e0f">
-        Preview link: <a href={waLink} target="_blank" style="color:#2f5e0f;font-weight:500">{waLink}</a>
+      <div style="margin-top:10px;padding:8px 12px;background:var(--success-bg);border-radius:var(--radius);font-size:12.5px;color:var(--success-fg)">
+        Preview link: <a href={waLink} target="_blank" style="color:var(--success-fg);font-weight:500">{waLink}</a>
       </div>
     {/if}
   </div>
@@ -95,19 +95,19 @@
     <div style="font-weight:500;font-size:14px;margin-bottom:14px">📱 Media Sosial & Kontak Lain</div>
     <div class="form-row-2">
       <div>
-        <label class="field-label">Telegram (username atau link)</label>
+        <div class="field-label">Telegram (username atau link)</div>
         <input class="input" bind:value={cfg.telegram} placeholder="@username atau https://t.me/xxx" />
         {#if tgLink}
-          <a href={tgLink} target="_blank" style="font-size:11.5px;color:#0d5fa8;margin-top:3px;display:block">{tgLink}</a>
+          <a href={tgLink} target="_blank" style="font-size:11.5px;color:var(--primary);margin-top:3px;display:block">{tgLink}</a>
         {/if}
       </div>
       <div>
-        <label class="field-label">Instagram</label>
+        <div class="field-label">Instagram</div>
         <input class="input" bind:value={cfg.instagram} placeholder="@username" />
       </div>
     </div>
     <div style="margin-top:12px">
-      <label class="field-label">Email Support</label>
+      <div class="field-label">Email Support</div>
       <input class="input" type="email" bind:value={cfg.email} placeholder="support@yourdomain.com" />
     </div>
   </div>
@@ -138,7 +138,7 @@
     <button class="btn btn-primary" on:click={save} disabled={saving}>
       {saving?'Menyimpan…':'Simpan Konfigurasi'}
     </button>
-    {#if saved}<span style="color:#2f5e0f;font-size:13px;font-weight:500">✓ Tersimpan!</span>{/if}
+    {#if saved}<span style="color:var(--success-fg);font-size:13px;font-weight:500">✓ Tersimpan!</span>{/if}
   </div>
 </div>
 {/if}

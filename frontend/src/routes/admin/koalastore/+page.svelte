@@ -240,7 +240,7 @@
       <div class="card" style="flex:1;min-width:220px;padding:1rem">
         {#if balance}
           <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px">💰 Saldo KoalaStore</div>
-          <div style="font-size:24px;font-weight:500;color:#0d5fa8">{balance.formatted_balance || IDR(balance.balance)}</div>
+          <div style="font-size:24px;font-weight:500;color:var(--primary)">{balance.formatted_balance || IDR(balance.balance)}</div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">Total dibelanjakan: {balance.formatted_total_spent || IDR(balance.total_spent)}</div>
         {:else}
           <div style="color:var(--text-muted);font-size:13px">Memuat saldo…</div>
@@ -260,14 +260,14 @@
         <div style="font-size:12.5px;font-weight:500;margin-bottom:10px">⚙️ Konfigurasi Import & Markup</div>
         <div class="form-row-2" style="gap:8px;margin-bottom:8px">
           <div>
-            <label class="field-label">Tipe Markup</label>
+            <div class="field-label">Tipe Markup</div>
             <select class="input" bind:value={markupType} style="font-size:12px;padding:6px 10px">
               <option value="percent">Persen (%)</option>
               <option value="fixed">Nominal (Rp)</option>
             </select>
           </div>
           <div>
-            <label class="field-label">Nilai</label>
+            <div class="field-label">Nilai</div>
             <input class="input" type="number" min="0" step="0.1" bind:value={markupValue} style="font-size:12px;padding:6px 10px"/>
             <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Contoh: 15, 20, atau 20.5</div>
           </div>
@@ -280,7 +280,7 @@
     </div>
 
     {#if syncResult}
-      <div style="margin-bottom:12px;padding:10px 14px;border-radius:var(--radius);background:{syncResult.error?'#FCEBEB':'#EAF3DE'};color:{syncResult.error?'#8c2626':'#2f5e0f'};font-size:13px">
+      <div style="margin-bottom:12px;padding:10px 14px;border-radius:var(--radius);background:{syncResult.error?'var(--danger-bg)':'var(--success-bg)'};color:{syncResult.error?'var(--danger-fg)':'var(--success-fg)'};font-size:13px">
         {syncResult.message}
         {#if !syncResult.error}<span style="margin-left:8px">· {syncResult.added} baru · {syncResult.updated} diperbarui</span>{/if}
         <button style="float:right;background:none;border:none;cursor:pointer;color:inherit" on:click={()=>syncResult=null}>×</button>
@@ -339,7 +339,7 @@
           </thead>
           <tbody>
             {#each providerProducts as p (p.id)}
-              <tr style="background:{p.imported?'#f9fbf9':'#fff'}">
+                <tr style="background:{p.imported?'var(--surface-2)':'var(--surface)'}">
                 <td>
                   {#if !p.imported}
                     <input type="checkbox" checked={selectedCodes.has(p.code)}
@@ -355,7 +355,7 @@
                 </td>
                 <td style="font-size:12.5px">{p.category}</td>
                 <td style="font-size:13px">{IDR(p.provider_price)}</td>
-                <td style="font-size:13px;color:#0d5fa8;font-weight:500">{IDR(sellPrice(p.provider_price))}</td>
+                  <td style="font-size:13px;color:var(--primary);font-weight:500">{IDR(sellPrice(p.provider_price))}</td>
                 <td>
                   <span class="badge {p.stock==='available'?'badge-active':p.stock==='out_of_stock'?'badge-failed':'badge-pending'}" style="font-size:11px">
                     {p.stock==='available'?'✓ Ada':p.stock==='out_of_stock'?'✗ Habis':'Manual'}
@@ -370,7 +370,7 @@
                 </td>
                 <td>
                   {#if !p.imported}
-                    <button class="btn btn-sm" style="font-size:11px;padding:4px 10px;background:#EAF3DE;color:#2f5e0f;border-color:#c0dda8"
+                    <button class="btn btn-sm" style="font-size:11px;padding:4px 10px;background:var(--success-bg);color:var(--success-fg);border-color:var(--border)"
                       disabled={importingCodes.has(p.code)} on:click={()=>importOne(p.code)}>
                       {importingCodes.has(p.code)?'⏳':'📥'} Import
                     </button>
@@ -391,7 +391,7 @@
 
       <!-- Pagination -->
       {#if productsMeta.total_pages > 1}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:0.5px solid var(--border);background:#f9f9f9">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:0.5px solid var(--border);background:var(--surface-2)">
           <span style="font-size:12.5px;color:var(--text-muted)">{productsMeta.total} produk total</span>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn btn-sm" on:click={()=>loadProducts(page-1)} disabled={page<=1}>← Prev</button>
@@ -414,18 +414,18 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div>
-          <label class="field-label">Nama Provider</label>
+          <div class="field-label">Nama Provider</div>
           <input class="input" bind:value={providerForm.name} placeholder="KoalaStore Production" />
         </div>
         <div>
-          <label class="field-label">API Key *</label>
+          <div class="field-label">API Key *</div>
           <input class="input mono" bind:value={providerForm.api_key}
             placeholder="sk_xxxxxxxxxxxxxxxxxxxx" type="password" autocomplete="off"/>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">
             Dapatkan API key di dashboard KoalaStore → Settings → API
           </div>
         </div>
-        <div style="background:#E6F1FB;border-radius:var(--radius);padding:11px 14px;font-size:12.5px;color:#185FA5">
+        <div style="background:var(--info-bg);border-radius:var(--radius);padding:11px 14px;font-size:12.5px;color:var(--info-fg)">
           <strong>Auth:</strong> Header <code>X-API-Key</code><br/>
           <strong>Base URL:</strong> <code>https://koalastore.digital/api/v1</code>
         </div>
@@ -438,14 +438,14 @@
         </div>
         <div class="form-row-2" style="gap:10px">
           <div>
-            <label class="field-label">Default Markup Type</label>
+            <div class="field-label">Default Markup Type</div>
             <select class="input" bind:value={providerForm.default_markup_type}>
               <option value="percent">Persen (%)</option>
               <option value="fixed">Nominal (Rp)</option>
             </select>
           </div>
           <div>
-            <label class="field-label">Default Markup Value</label>
+            <div class="field-label">Default Markup Value</div>
             <input class="input" type="number" min="0" step="0.1" bind:value={providerForm.default_markup_value} />
           </div>
         </div>
@@ -467,16 +467,16 @@
   padding: 10px 14px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius-lg);
-  cursor: pointer; background: #fff;
+  cursor: pointer; background: var(--surface);
   min-width: 200px; flex: 1; max-width: 340px;
   transition: border-color 0.12s;
 }
-.provider-chip.active { border: 1.5px solid #0d5fa8; background: #fafeff; }
-.provider-chip:hover { border-color: #0d5fa8; }
+.provider-chip.active { border: 1.5px solid var(--primary); background: var(--primary-bg); }
+.provider-chip:hover { border-color: var(--primary); }
 
 .bulk-bar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: #E6F1FB; border-radius: var(--radius);
+  padding: 10px 14px; background: var(--info-bg); border-radius: var(--radius);
   margin-bottom: 10px; gap: 10px;
 }
 </style>
