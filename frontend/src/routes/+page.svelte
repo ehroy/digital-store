@@ -140,13 +140,14 @@
     </a>
     <span class="nav-tag">Digital goods, clean checkout</span>
     <div class="nav-actions">
-      <ThemeToggle />
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
       <a href="/komplain" class="btn btn-sm">🎧 Bantuan</a>
 
     </div>
   </div>
 </nav>
+
+<ThemeToggle floating />
 
 <div class="hero">
   <div class="hero-panel">
@@ -439,9 +440,9 @@
 }
 
 @media (max-width: 640px) {
-  .nav-inner { align-items:flex-start; }
-  .nav-actions { width:100%; margin-left:0; justify-content:flex-start; }
-  .nav-actions :global(.btn), .nav-actions :global(button) { flex:1 1 calc(50% - 4px); }
+  .nav-inner { align-items:center; flex-wrap:nowrap; gap:8px; }
+  .nav-actions { width:auto; margin-left:auto; justify-content:flex-end; flex-wrap:nowrap; gap:6px; }
+  .nav-actions :global(.btn), .nav-actions :global(button) { flex:0 0 auto; padding-inline:8px; font-size:11.5px; }
   .store-container { padding-inline: 0.75rem; }
   .hero { padding-inline: 0.75rem; }
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

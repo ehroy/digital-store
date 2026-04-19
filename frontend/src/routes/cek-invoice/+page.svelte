@@ -100,11 +100,12 @@
       Digital Murah
     </a>
     <div class="cek-actions">
-      <ThemeToggle />
       <span class="cek-meta">Cek Invoice</span>
     </div>
   </div>
 </nav>
+
+<ThemeToggle floating />
 
 <div style="max-width:680px;margin:0 auto;padding:2rem 1rem">
 

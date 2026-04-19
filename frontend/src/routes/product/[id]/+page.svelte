@@ -57,11 +57,12 @@
     </a>
     <span style="color:var(--text-muted);font-size:13px;margin-left:4px">/ {loading ? '…' : (product?.name || 'Produk')}</span>
     <div style="display:flex;gap:8px;margin-left:auto">
-      <ThemeToggle />
       <a href="/cek-invoice" class="btn btn-sm">📋 Cek Invoice</a>
     </div>
   </div>
 </nav>
+
+<ThemeToggle floating />
 
 <div style="max-width:900px;margin:0 auto;padding:2rem 1rem 4rem">
   {#if loading}

@@ -119,11 +119,12 @@
       Digital Murah
     </a>
     <div class="invoice-actions">
-      <ThemeToggle />
       <span class="invoice-meta mono">{invoiceNo}</span>
     </div>
   </div>
 </nav>
+
+<ThemeToggle floating />
 
 <div style="max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem">
 
